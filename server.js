@@ -461,6 +461,7 @@ app.get("/lookup", async (req, res) => {
     const response = await axios.get(process.env.UPSTREAM_API_URL + "?number=" + encodeURIComponent(number), { timeout: 10000 });
     await incrementUsage(keyDoc._id);
     const data = response.data;
+    data.tag = "@aerivue";
     data.owner = "@aerivue";
     if (data.result && typeof data.result === "object") data.result.owner = "@aerivue";
     return res.json(data);
