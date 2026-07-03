@@ -1,24 +1,23 @@
 {
-  "name": "api-system",
+  "name": "nexus-api-admin-panel",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Generic API key management admin panel with super-admin and admin roles.",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
-    "axios": "^1.13.6",
-    "bcryptjs": "^3.0.3",
-    "goodai": "^1.0.13",
-    "cookie-parser": "^1.4.7",
-    "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3",
-    "mongoose": "^9.3.0",
-    "node-fetch": "^3.3.2"
+    "express": "^4.19.2",
+    "mongoose": "^8.5.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "axios": "^1.7.2",
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5"
   }
 }
