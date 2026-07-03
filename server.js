@@ -460,24 +460,20 @@ app.get("/lookup", async (req, res) => {
   try {
     const response = await axios.get(process.env.UPSTREAM_API_URL + "?number=" + encodeURIComponent(number), { timeout: 10000 });
     await incrementUsage(keyDoc._id);
-    
+
     const upstreamData = response.data;
-    
-    // 🔥 Build fresh response structure
+
+    // ✅ Updated response structure
     const finalResponse = {
       success: true,
-      credit: "Api by @aerivue",
-      result: {
-        result: upstreamData.result?.result || {},
-        success: true,
-        owner: "@aerivue"
+      data: {
+        total: upstreamData.result?.result?.contacts?.length || 0,
+        contacts: upstreamData.result?.result?.contacts || []
       },
-      meta: {
-        input: number,
-        timestamp: new Date().toISOString()
-      }
+      credit: "@Boss_Hcrr",
+      developer: "@Boss_Hcrr"
     };
-    
+
     return res.json(finalResponse);
   } catch (err) {
     if (err.response) return res.status(err.response.status).json(err.response.data);
