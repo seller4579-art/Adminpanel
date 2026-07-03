@@ -451,33 +451,26 @@ app.delete("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
 // ─── PUBLIC API ROUTES ────────────────────────────────────────────────────────
 
 app.get("/lookup", async (req, res) => {
-  const { number } = req.query;
-  const apiKey = req.headers["x-api-key"] || req.query.apikey;
-  if (!number) return res.status(400).json({ error: "number query param required" });
-  if (!apiKey) return res.status(401).json({ error: "API key required" });
-  const { error, status, keyDoc } = await validateApiKey(apiKey, "number");
-  if (error) return res.status(status).json({ error });
+const { number } = req.query;
+
+  if (!number) {
+    return res.status(400).json({ error: "number query param required" });
+  }
+
   try {
-    const response = await axios.get(process.env.UPSTREAM_API_URL + "?number=" + encodeURIComponent(number), { timeout: 10000 });
-    await incrementUsage(keyDoc._id);
+    const response = await axios.get(
+      ${process.env.UPSTREAM_API_URL}?number=${encodeURIComponent(number)}
+    );
 
-    const upstreamData = response.data;
-
-    // ✅ Updated response structure
-    const finalResponse = {
-      success: true,
-      data: {
-        total: upstreamData.result?.result?.contacts?.length || 0,
-        contacts: upstreamData.result?.result?.contacts || []
-      },
-      credit: "@Boss_Hcrr",
-      developer: "@Boss_Hcrr"
-    };
-
-    return res.json(finalResponse);
+    return res.json(response.data);
   } catch (err) {
-    if (err.response) return res.status(err.response.status).json(err.response.data);
-    return res.status(500).json({ error: "Upstream API error" });
+    if (err.response) {
+      return res.status(err.response.status).json(err.response.data);
+    }
+
+    return res.status(500).json({
+      error: err.message
+    });
   }
 });
 
