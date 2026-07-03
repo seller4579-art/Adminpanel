@@ -451,7 +451,7 @@ app.delete("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
 // ─── PUBLIC API ROUTES ────────────────────────────────────────────────────────
 
 app.get("/lookup", async (req, res) => {
-const { number } = req.query;
+  const { number } = req.query;
 
   if (!number) {
     return res.status(400).json({ error: "number query param required" });
@@ -459,7 +459,7 @@ const { number } = req.query;
 
   try {
     const response = await axios.get(
-      ${process.env.UPSTREAM_API_URL}?number=${encodeURIComponent(number)}
+      `${process.env.UPSTREAM_API_URL}?number=${encodeURIComponent(number)}`
     );
 
     return res.json(response.data);
