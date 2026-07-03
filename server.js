@@ -452,25 +452,36 @@ app.delete("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
 
 app.get("/lookup", async (req, res) => {
   const { number } = req.query;
-
-  if (!number) {
-    return res.status(400).json({ error: "number query param required" });
-  }
-
+  const apiKey = req.headers["x-api-key"] || req.query.apikey;
+  if (!number) return res.status(400).json({ error: "number query param required" });
+  if (!apiKey) return res.status(401).json({ error: "API key required" });
+  const { error, status, keyDoc } = await validateApiKey(apiKey, "number");
+  if (error) return res.status(status).json({ error });
   try {
-    const response = await axios.get(
-      `${process.env.UPSTREAM_API_URL}?number=${encodeURIComponent(number)}`
-    );
-
-    return res.json(response.data);
+    const response = await axios.get(process.env.UPSTREAM_API_URL + "?number=" + encodeURIComponent(number), { timeout: 10000 });
+    await incrementUsage(keyDoc._id);
+    
+    const upstreamData = response.data;
+    
+    // 🔥 Build fresh response structure
+    const finalResponse = {
+      success: true,
+      credit: "Api by @aerivue",
+      result: {
+        result: upstreamData.result?.result || {},
+        success: true,
+        owner: "@aerivue"
+      },
+      meta: {
+        input: number,
+        timestamp: new Date().toISOString()
+      }
+    };
+    
+    return res.json(finalResponse);
   } catch (err) {
-    if (err.response) {
-      return res.status(err.response.status).json(err.response.data);
-    }
-
-    return res.status(500).json({
-      error: err.message
-    });
+    if (err.response) return res.status(err.response.status).json(err.response.data);
+    return res.status(500).json({ error: "Upstream API error" });
   }
 });
 
