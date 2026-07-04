@@ -3,329 +3,360 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Fighter Modz · Admin Panel</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<title>NexusAPI — Admin Panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0b0d12;
-  --panel:rgba(255,255,255,0.035);
-  --panel-border:rgba(255,255,255,0.09);
-  --primary:#5eead4;
-  --primary2:#38bdf8;
-  --primary3:#a78bfa;
-  --text:#eef2f6;
-  --text2:#8b93a3;
-  --text3:#4b5363;
-  --danger:#f87171;
-  --warn:#fbbf24;
-  --mono:'IBM Plex Mono',monospace;
-  --sans:'Sora',sans-serif;
-  --sidebar-w:210px;
+  --void:#060914;
+  --cyan:#00e5ff;
+  --violet:#7c3aed;
+  --pink:#f0abfc;
+  --emerald:#10b981;
+  --red:#f87171;
+  --amber:#fbbf24;
+  --surface:rgba(255,255,255,0.03);
+  --surface2:rgba(255,255,255,0.06);
+  --border:rgba(255,255,255,0.08);
+  --border2:rgba(0,229,255,0.15);
+  --text:#e2e8f8;
+  --muted:#64748b;
+  --mono:'DM Mono',monospace;
+  --sans:'Syne',sans-serif;
+  --nav-w:230px;
 }
-body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;position:relative}
-.grid-bg{position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(94,234,212,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(94,234,212,0.035) 1px,transparent 1px);background-size:48px 48px;mask-image:radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 80%)}
-.glow{position:fixed;border-radius:50%;filter:blur(100px);z-index:0;pointer-events:none}
-.glow1{width:420px;height:420px;background:rgba(94,234,212,0.08);top:-140px;left:-100px}
-.glow2{width:380px;height:380px;background:rgba(167,139,250,0.07);bottom:-120px;right:-80px}
+body{font-family:var(--sans);background:var(--void);color:var(--text);min-height:100vh;overflow-x:hidden}
+.bg-grid{position:fixed;inset:0;background-image:linear-gradient(rgba(0,229,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,0.025) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(ellipse 100% 100% at 50% 0%,black 40%,transparent 100%);pointer-events:none;z-index:0}
+.orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0}
+.orb-a{width:500px;height:500px;background:rgba(124,58,237,0.07);top:-200px;left:-150px}
+.orb-b{width:300px;height:300px;background:rgba(0,229,255,0.05);bottom:-100px;right:-100px}
 
-.shell{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:56px;background:rgba(11,13,18,0.7);backdrop-filter:blur(18px);border-bottom:1px solid var(--panel-border);position:sticky;top:0;z-index:100}
-.tb-brand{display:flex;align-items:center;gap:9px}
-.tb-mark{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary2));display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:.85rem;color:#06110f}
-.tb-name{font-weight:800;font-size:1rem;letter-spacing:-.01em}
-.tb-tag{font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;background:rgba(94,234,212,0.08);border:1px solid rgba(94,234,212,0.22);color:var(--primary);padding:2px 8px;border-radius:20px}
-.tb-right{display:flex;align-items:center;gap:9px}
-.pill{display:flex;align-items:center;gap:6px;padding:5px 11px;border-radius:20px;background:var(--panel);border:1px solid var(--panel-border);font-size:.75rem}
-.pill-dot{width:6px;height:6px;border-radius:50%;background:var(--primary);box-shadow:0 0 7px var(--primary)}
+/* ── TOPBAR ── */
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:58px;z-index:100;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 20px;
+  background:rgba(6,9,20,0.7);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-hex{
+  width:30px;height:30px;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--cyan),var(--violet));
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  font-size:12px;font-weight:800;color:#000;
+}
+.brand-name{font-size:.95rem;font-weight:800;letter-spacing:.08em}
+.brand-badge{font-family:var(--mono);font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;padding:2px 8px;border-radius:20px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);color:var(--cyan)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.user-chip{display:flex;align-items:center;gap:7px;padding:5px 12px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);font-size:.78rem}
+.u-dot{width:6px;height:6px;border-radius:50%;background:var(--emerald);box-shadow:0 0 8px var(--emerald)}
+.btn-sm-out{padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--sans);font-size:.72rem;cursor:pointer;transition:all .2s}
+.btn-sm-out:hover{border-color:var(--border2);color:var(--text)}
 
-.layout{display:flex;flex:1;min-height:calc(100vh - 56px)}
-.sidebar{width:var(--sidebar-w);min-width:var(--sidebar-w);background:rgba(11,13,18,0.5);backdrop-filter:blur(20px);border-right:1px solid var(--panel-border);padding:18px 11px;display:flex;flex-direction:column;gap:3px;position:sticky;top:56px;height:calc(100vh - 56px)}
-.nav-label{font-family:var(--mono);font-size:.58rem;font-weight:600;letter-spacing:.14em;color:var(--text3);text-transform:uppercase;padding:0 9px 8px}
-.nav-item{display:flex;align-items:center;gap:9px;padding:9px 11px;border-radius:9px;cursor:pointer;font-size:.78rem;color:var(--text2);transition:all .15s;border:1px solid transparent}
-.nav-item:hover{background:var(--panel);color:var(--text)}
-.nav-item.active{background:linear-gradient(135deg,rgba(94,234,212,0.1),rgba(56,189,248,0.06));color:var(--primary);border-color:rgba(94,234,212,0.2);font-weight:600}
+/* ── SIDEBAR ── */
+.sidebar{
+  position:fixed;top:58px;left:0;bottom:0;width:var(--nav-w);z-index:50;
+  background:rgba(6,9,20,0.5);
+  backdrop-filter:blur(20px);
+  border-right:1px solid var(--border);
+  padding:18px 12px;overflow-y:auto;
+}
+.nav-sect{margin-bottom:24px}
+.nav-lbl{font-family:var(--mono);font-size:.56rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);padding:0 10px;margin-bottom:6px;display:block}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border-radius:10px;cursor:pointer;font-size:.8rem;font-weight:600;
+  color:var(--muted);transition:all .2s;border:1px solid transparent;
+  margin-bottom:2px;
+}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.on{
+  background:linear-gradient(135deg,rgba(0,229,255,0.08),rgba(124,58,237,0.06));
+  color:var(--cyan);border-color:rgba(0,229,255,0.15);
+  box-shadow:0 0 16px rgba(0,229,255,0.05);
+}
+.nav-ic{font-size:.85rem}
 
-.main{flex:1;padding:22px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
-.card{background:var(--panel);border:1px solid var(--panel-border);border-radius:15px;padding:20px;backdrop-filter:blur(16px);position:relative}
-.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(94,234,212,0.25),transparent)}
-.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap}
-.card-title{font-weight:700;font-size:.9rem}
+/* ── MAIN ── */
+.main{margin-left:var(--nav-w);margin-top:58px;padding:24px;min-height:calc(100vh - 58px);position:relative;z-index:1}
 
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
-@media(max-width:560px){.grid2{grid-template-columns:1fr}}
-.field{display:flex;flex-direction:column;gap:6px}
-.field label{font-family:var(--mono);font-size:.62rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}
-input,select{background:rgba(255,255,255,0.035);border:1px solid rgba(255,255,255,0.09);border-radius:9px;padding:9px 12px;color:var(--text);font-family:var(--sans);font-size:.8rem;outline:none;transition:all .2s;-webkit-appearance:none}
-input:focus,select:focus{border-color:rgba(94,234,212,0.4);box-shadow:0 0 0 3px rgba(94,234,212,0.08)}
-select option{background:#12151c}
+/* ── CARD ── */
+.card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:20px;margin-bottom:16px;
+  position:relative;overflow:hidden;
+}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(0,229,255,0.2),transparent)}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:10px;flex-wrap:wrap}
+.card-ttl{font-size:.88rem;font-weight:700;color:var(--text)}
 
-/* range slider for daily limit */
-.slider-row{display:flex;align-items:center;gap:12px}
-input[type=range]{-webkit-appearance:none;flex:1;height:5px;border-radius:5px;background:rgba(255,255,255,0.08);outline:none}
-input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--primary);box-shadow:0 0 10px rgba(94,234,212,0.6);cursor:pointer;border:2px solid #06110f}
-input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--primary);box-shadow:0 0 10px rgba(94,234,212,0.6);cursor:pointer;border:2px solid #06110f}
-.slider-val{font-family:var(--mono);font-size:.78rem;color:var(--primary);min-width:74px;text-align:right}
+/* ── FORM ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+@media(max-width:540px){.g2{grid-template-columns:1fr}}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld label{font-family:var(--mono);font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.fld input,.fld select{
+  background:rgba(255,255,255,0.03);border:1px solid var(--border);
+  border-radius:8px;padding:9px 12px;color:var(--text);
+  font-family:var(--sans);font-size:.8rem;outline:none;
+  transition:border-color .2s,box-shadow .2s;
+}
+.fld input:focus,.fld select:focus{border-color:rgba(0,229,255,0.3);box-shadow:0 0 0 3px rgba(0,229,255,0.06)}
+.fld select option{background:#0d1020}
 
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 17px;border-radius:9px;border:none;font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--sans);transition:all .2s}
-.btn-primary{background:linear-gradient(135deg,var(--primary),var(--primary2));color:#06110f;box-shadow:0 6px 20px rgba(94,234,212,0.22)}
-.btn-primary:hover{transform:translateY(-1px);box-shadow:0 8px 26px rgba(94,234,212,0.32)}
-.btn-ghost{background:var(--panel);border:1px solid var(--panel-border);color:var(--text2)}
-.btn-ghost:hover{color:var(--text);border-color:rgba(255,255,255,0.16)}
-.btn-danger{background:rgba(248,113,113,0.09);border:1px solid rgba(248,113,113,0.25);color:var(--danger)}
-.btn-danger:hover{background:rgba(248,113,113,0.16)}
-.btn-sm{padding:5px 10px;font-size:.68rem;border-radius:7px}
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;border:none;font-family:var(--sans);font-size:.76rem;font-weight:700;cursor:pointer;transition:all .2s}
+.btn-cyan{background:linear-gradient(135deg,rgba(0,229,255,0.12),rgba(124,58,237,0.1));border:1px solid rgba(0,229,255,0.25);color:var(--cyan)}
+.btn-cyan:hover{background:linear-gradient(135deg,rgba(0,229,255,0.2),rgba(124,58,237,0.15));transform:translateY(-1px)}
+.btn-ghost{background:var(--surface2);border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2)}
+.btn-red{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);color:var(--red)}
+.btn-red:hover{background:rgba(248,113,113,0.15)}
+.btn-xs{padding:4px 9px;font-size:.65rem;border-radius:6px}
 
-.badge{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:20px;font-size:.6rem;font-weight:700;font-family:var(--mono);letter-spacing:.03em}
-.badge-green{background:rgba(94,234,212,0.1);border:1px solid rgba(94,234,212,0.28);color:var(--primary)}
-.badge-red{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.28);color:var(--danger)}
-.badge-yellow{background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.28);color:var(--warn)}
-.badge-blue{background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.28);color:var(--primary2)}
+/* ── BADGES ── */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-family:var(--mono);font-size:.6rem;font-weight:600}
+.b-green{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);color:var(--emerald)}
+.b-red{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.2);color:var(--red)}
+.b-amber{background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);color:var(--amber)}
+.b-cyan{background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);color:var(--cyan)}
 
-.table-wrap{overflow-x:auto;border-radius:11px;border:1px solid var(--panel-border)}
-table{width:100%;border-collapse:collapse;font-size:.72rem}
-thead tr{background:rgba(255,255,255,0.02)}
-th{padding:9px 12px;text-align:left;font-family:var(--mono);font-size:.6rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);white-space:nowrap}
-td{padding:9px 12px;border-top:1px solid rgba(255,255,255,0.04);color:var(--text2);white-space:nowrap}
-tr:hover td{background:rgba(255,255,255,0.015)}
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:.74rem;min-width:520px}
+thead tr{background:rgba(255,255,255,0.025)}
+th{padding:9px 12px;text-align:left;font-family:var(--mono);font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+td{padding:9px 12px;border-top:1px solid rgba(255,255,255,0.04);color:rgba(226,232,248,0.8);white-space:nowrap}
+tr:hover td{background:rgba(255,255,255,0.02)}
 
-.key-box{font-family:var(--mono);font-size:.68rem;background:rgba(94,234,212,0.05);border:1px solid rgba(94,234,212,0.22);border-radius:9px;padding:11px 14px;color:var(--primary);word-break:break-all}
-.copy-btn{background:rgba(56,189,248,0.1);border:1px solid rgba(56,189,248,0.25);color:var(--primary2);border-radius:6px;padding:3px 9px;font-size:.62rem;cursor:pointer;font-family:var(--sans)}
-.copy-btn:hover{background:rgba(56,189,248,0.2)}
+/* ── KEY DISPLAY ── */
+.key-reveal{
+  font-family:var(--mono);font-size:.68rem;
+  background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.18);
+  border-radius:8px;padding:10px 14px;color:var(--cyan);word-break:break-all;
+  margin-top:12px;
+}
+.cp-btn{font-family:var(--mono);font-size:.6rem;background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);color:var(--pink);padding:2px 8px;border-radius:5px;cursor:pointer;transition:all .2s}
+.cp-btn:hover{background:rgba(124,58,237,0.2)}
 
-.ep-item{background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:11px 14px;margin-bottom:8px}
-.ep-method{font-family:var(--mono);font-size:.58rem;font-weight:700;letter-spacing:.08em;color:var(--primary);margin-right:8px}
-.ep-url{font-family:var(--mono);font-size:.65rem;color:var(--primary2);word-break:break-all}
-.ep-desc{font-size:.66rem;color:var(--text3);margin-top:4px}
+/* ── EP ITEM ── */
+.ep{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:8px}
+.ep-m{font-family:var(--mono);font-size:.58rem;color:var(--emerald);font-weight:700;margin-right:8px;letter-spacing:.08em}
+.ep-u{font-family:var(--mono);font-size:.64rem;color:var(--cyan);word-break:break-all}
+.ep-p{font-family:var(--mono);font-size:.6rem;color:var(--muted);margin-top:4px}
 
-.session-item{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--panel);border:1px solid var(--panel-border);border-radius:10px;padding:12px 14px;margin-bottom:8px;flex-wrap:wrap}
-.session-device{font-weight:700;font-size:.78rem;margin-bottom:3px}
-.session-meta{font-size:.64rem;color:var(--text3);font-family:var(--mono)}
+/* ── SESSION ITEM ── */
+.sess{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;flex-wrap:wrap}
 
-.msg{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:8px;font-size:.72rem;font-weight:600;margin-top:8px}
-.msg-ok{background:rgba(94,234,212,0.1);border:1px solid rgba(94,234,212,0.28);color:var(--primary)}
-.msg-err{background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.28);color:var(--danger)}
+/* ── MSG ── */
+.msg{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-family:var(--mono);font-size:.7rem;margin-top:10px}
+.msg-ok{background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);color:var(--emerald)}
+.msg-err{background:rgba(248,113,113,0.08);border:1px solid rgba(248,113,113,0.2);color:var(--red)}
 
-pre{background:rgba(0,0,0,0.35);border:1px solid var(--panel-border);border-radius:10px;padding:12px;font-family:var(--mono);font-size:.65rem;color:var(--primary2);overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+pre{background:rgba(0,0,0,0.4);border:1px solid var(--border);border-radius:10px;padding:12px;font-family:var(--mono);font-size:.64rem;color:var(--cyan);overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+.spin{display:inline-block;width:11px;height:11px;border-radius:50%;border:2px solid rgba(255,255,255,0.15);border-top-color:var(--cyan);animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
 
+/* ── MOBILE ── */
 @media(max-width:768px){
   .sidebar{display:none}
-  .shell{padding-bottom:68px}
-  .mobile-nav{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(11,13,18,0.9);backdrop-filter:blur(20px);border-top:1px solid var(--panel-border);padding:8px 0 max(8px,env(safe-area-inset-bottom))}
-  .mobile-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;color:var(--text3)}
-  .mobile-nav-item.active{color:var(--primary)}
-  .mobile-nav-icon{font-family:var(--mono);font-size:.85rem;font-weight:700}
-  .mobile-nav-label{font-size:.55rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-  .main{padding:14px}
-  .card{padding:14px;border-radius:12px}
-  .grid2{grid-template-columns:1fr}
+  .main{margin-left:0;padding:14px;padding-bottom:76px}
+  .m-nav{display:flex}
 }
-@media(min-width:769px){.mobile-nav{display:none}}
+@media(min-width:769px){.m-nav{display:none}}
+.m-nav{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:rgba(6,9,20,0.88);backdrop-filter:blur(24px);
+  border-top:1px solid var(--border);
+  padding:8px 0 max(8px,env(safe-area-inset-bottom));
+}
+.m-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;color:var(--muted);transition:all .2s}
+.m-nav-item.on{color:var(--cyan)}
+.m-nav-ic{font-size:1.15rem}
+.m-nav-lbl{font-family:var(--mono);font-size:.52rem;letter-spacing:.08em;text-transform:uppercase}
+
+/* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--panel-border);border-radius:2px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:rgba(0,229,255,0.2)}
 </style>
 </head>
 <body>
+<div class="bg-grid"></div>
+<div class="orb orb-a"></div>
+<div class="orb orb-b"></div>
 
-<div class="grid-bg"></div>
-<div class="glow glow1"></div>
-<div class="glow glow2"></div>
-
-<div class="shell">
-  <div class="topbar">
-    <div class="tb-brand">
-      <div class="tb-mark">F</div>
-      <span class="tb-name">Fighter API</span>
-      <span class="tb-tag">Admin</span>
-    </div>
-    <div class="tb-right">
-      <div class="pill"><span class="pill-dot"></span><span id="topUser">—</span></div>
-      <button class="btn btn-ghost btn-sm" onclick="logout()">Logout</button>
-    </div>
+<div class="topbar">
+  <div class="brand">
+    <div class="brand-hex">N</div>
+    <span class="brand-name">NexusAPI</span>
+    <span class="brand-badge">Admin</span>
   </div>
-
-  <div class="layout">
-    <aside class="sidebar">
-      <div class="nav-label">Main</div>
-      <div class="nav-item active" id="nav-keys" onclick="goTo('keys')">◆ My Keys</div>
-      <div class="nav-item" id="nav-sessions" onclick="goTo('sessions')">◎ My Sessions</div>
-      <div class="nav-item" id="nav-test" onclick="goTo('test')">▶ Test Console</div>
-    </aside>
-    <main class="main" id="mainContent"></main>
+  <div class="topbar-right">
+    <div class="user-chip"><span class="u-dot"></span><span id="topUser" style="font-weight:700">—</span></div>
+    <button class="btn-sm-out" onclick="logout()">Sign Out</button>
   </div>
-
-  <nav class="mobile-nav">
-    <div class="mobile-nav-item active" id="mnav-keys" onclick="goTo('keys')"><div class="mobile-nav-icon">◆</div><div class="mobile-nav-label">Keys</div></div>
-    <div class="mobile-nav-item" id="mnav-sessions" onclick="goTo('sessions')"><div class="mobile-nav-icon">◎</div><div class="mobile-nav-label">Sessions</div></div>
-    <div class="mobile-nav-item" id="mnav-test" onclick="goTo('test')"><div class="mobile-nav-icon">▶</div><div class="mobile-nav-label">Test</div></div>
-  </nav>
 </div>
 
+<aside class="sidebar">
+  <div class="nav-sect">
+    <span class="nav-lbl">Workspace</span>
+    <div class="nav-item on" id="nav-keys" onclick="go('keys')"><span class="nav-ic">◆</span> API Keys</div>
+    <div class="nav-item" id="nav-sessions" onclick="go('sessions')"><span class="nav-ic">⊙</span> Sessions</div>
+    <div class="nav-item" id="nav-test" onclick="go('test')"><span class="nav-ic">◈</span> Test APIs</div>
+    <div class="nav-item" id="nav-docs" onclick="go('docs')"><span class="nav-ic">◉</span> Endpoints</div>
+  </div>
+</aside>
+
+<main class="main" id="mc"></main>
+
+<nav class="m-nav">
+  <div class="m-nav-item on" id="mn-keys" onclick="go('keys')"><div class="m-nav-ic">◆</div><div class="m-nav-lbl">Keys</div></div>
+  <div class="m-nav-item" id="mn-sessions" onclick="go('sessions')"><div class="m-nav-ic">⊙</div><div class="m-nav-lbl">Sessions</div></div>
+  <div class="m-nav-item" id="mn-test" onclick="go('test')"><div class="m-nav-ic">◈</div><div class="m-nav-lbl">Test</div></div>
+  <div class="m-nav-item" id="mn-docs" onclick="go('docs')"><div class="m-nav-ic">◉</div><div class="m-nav-lbl">Docs</div></div>
+</nav>
+
 <script>
-var API_TYPES=[], DURATIONS=[], allowedTypes=['all'], currentPane='keys';
-var DURATION_LABELS={'1h':'1 Hour','3d':'3 Days','7d':'7 Days','15d':'15 Days','30d':'30 Days','90d':'90 Days','365d':'365 Days'};
+var TYPES=[],ALLOWED=['all'],PANE='keys';
 
-async function api(url,opts){
-  opts=opts||{};
-  var res=await fetch(url,Object.assign({headers:{'Content-Type':'application/json'}},opts));
-  return{status:res.status,data:await res.json()};
-}
-function logout(){api('/admin/logout',{method:'POST'}).then(function(){window.location.href='/admin'});}
-function parseDevice(ua){ua=ua||'';if(!ua)return'Unknown';if(/mobile/i.test(ua))return'Mobile';if(/tablet/i.test(ua))return'Tablet';return'Desktop';}
-function fmtDate(d){return new Date(d).toLocaleString()}
-function fmtDateShort(d){return new Date(d).toLocaleDateString()}
-function typeBadge(type){var a=API_TYPES.find(function(x){return x.type===type});return'<span class="badge badge-blue">'+(a?a.label:type)+'</span>';}
-function copy(t){navigator.clipboard.writeText(t).catch(function(){var el=document.createElement('textarea');el.value=t;document.body.appendChild(el);el.select();document.execCommand('copy');document.body.removeChild(el);});}
-function showMsg(id,text,ok){var el=document.getElementById(id);if(!el)return;el.innerHTML='<div class="msg '+(ok?'msg-ok':'msg-err')+'">'+(ok?'✓ ':'✗ ')+text+'</div>';setTimeout(function(){el.innerHTML=''},5000);}
-function visibleTypes(){if(allowedTypes.includes('all'))return API_TYPES;return API_TYPES.filter(function(a){return allowedTypes.includes(a.type)});}
+async function api(url,o){o=o||{};var r=await fetch(url,Object.assign({headers:{'Content-Type':'application/json'}},o));return{s:r.status,d:await r.json()}}
+function logout(){api('/admin/logout',{method:'POST'}).then(function(){window.location.href='/admin'})}
+function dev(ua){ua=ua||'';if(/mobile/i.test(ua))return'📱';if(/tablet/i.test(ua))return'📟';return'🖥'}
+function fdt(d){return new Date(d).toLocaleString()}
+function fdts(d){return new Date(d).toLocaleDateString()}
+function tbadge(t){var a=TYPES.find(function(x){return x.type===t});return'<span class="badge b-cyan">'+(a?a.icon+' '+a.label:t)+'</span>'}
+function cp(t){navigator.clipboard.writeText(t).catch(function(){var e=document.createElement('textarea');e.value=t;document.body.appendChild(e);e.select();document.execCommand('copy');document.body.removeChild(e)})}
+function msg(id,txt,ok){var e=document.getElementById(id);if(!e)return;e.innerHTML='<div class="msg '+(ok?'msg-ok':'msg-err')+'">'+(ok?'✓ ':'✗ ')+txt+'</div>';setTimeout(function(){e.innerHTML=''},5000)}
+function visible(){if(ALLOWED.includes('all'))return TYPES;return TYPES.filter(function(a){return ALLOWED.includes(a.type)})}
 
-function goTo(pane){
-  currentPane=pane;
-  document.querySelectorAll('.nav-item').forEach(function(el){el.classList.remove('active')});
-  document.querySelectorAll('.mobile-nav-item').forEach(function(el){el.classList.remove('active')});
-  var n=document.getElementById('nav-'+pane); if(n)n.classList.add('active');
-  var mn=document.getElementById('mnav-'+pane); if(mn)mn.classList.add('active');
-  ({keys:renderKeys,sessions:renderSessions,test:renderTest})[pane]();
+function go(p){
+  PANE=p;
+  document.querySelectorAll('.nav-item').forEach(function(e){e.classList.remove('on')});
+  document.querySelectorAll('.m-nav-item').forEach(function(e){e.classList.remove('on')});
+  var n=document.getElementById('nav-'+p);if(n)n.classList.add('on');
+  var m=document.getElementById('mn-'+p);if(m)m.classList.add('on');
+  ({keys:renderKeys,sessions:renderSessions,test:renderTest,docs:renderDocs})[p]();
 }
 
-// ── KEYS ──────────────────────────────────────────────────────────────
+// ── KEYS ──────────────────────────────────────────────────────
 async function renderKeys(){
-  var typeOptions=visibleTypes().map(function(a){return'<option value="'+a.type+'">'+a.label+'</option>'}).join('');
-  var durOptions=DURATIONS.map(function(d){return'<option value="'+d+'"'+(d==='7d'?' selected':'')+'>'+(DURATION_LABELS[d]||d)+'</option>'}).join('');
-  var epItems=visibleTypes().map(function(a){
-    return'<div class="ep-item"><div><span class="ep-method">GET</span><span class="ep-url">'+a.route+'?'+a.paramName+'=VALUE&apikey=YOUR_KEY</span></div><div class="ep-desc">'+a.description+'</div></div>';
-  }).join('');
-  var mc=document.getElementById('mainContent');
-  mc.innerHTML=''
-    +'<div class="card"><div class="card-head"><div class="card-title">Generate New Key</div></div>'
-    +'<div class="grid2">'
-      +'<div class="field"><label>API Type</label><select id="keyType">'+typeOptions+'</select></div>'
-      +'<div class="field"><label>Label</label><input type="text" id="keyLabel" placeholder="e.g. Mobile App"></div>'
-      +'<div class="field"><label>Valid For</label><select id="keyDuration">'+durOptions+'</select></div>'
-      +'<div class="field"><label>Daily Limit</label>'
-        +'<div class="slider-row"><input type="range" id="keyDailyLimit" min="0" max="10000" step="50" value="0" oninput="updateSliderLabel()">'
-        +'<span class="slider-val" id="dailyLimitVal">Unlimited</span></div>'
-      +'</div>'
+  var opts=visible().map(function(a){return'<option value="'+a.type+'">'+a.icon+' '+a.label+'</option>'}).join('');
+  var mc=document.getElementById('mc');
+  mc.innerHTML='<div class="card"><div class="card-hd"><div class="card-ttl">⚡ Generate API Key</div></div>'
+    +'<div class="g2">'
+    +'<div class="fld"><label>API Type</label><select id="kType">'+opts+'</select></div>'
+    +'<div class="fld"><label>Label / Note</label><input type="text" id="kLabel" placeholder="e.g. My Bot"></div>'
+    +'<div class="fld"><label>Valid For</label><select id="kDays"><option value="0.04">1 Hour</option><option value="3">3 Days</option><option value="7" selected>7 Days</option><option value="15">15 Days</option><option value="30">30 Days</option><option value="90">90 Days</option><option value="365">365 Days</option></select></div>'
+    +'<div class="fld"><label>Daily Limit (0=∞)</label><input type="number" id="kDaily" value="0" min="0"></div>'
+    +'<div class="fld"><label>Total Limit (0=∞)</label><input type="number" id="kLimit" value="0" min="0"></div>'
     +'</div>'
-    +'<button class="btn btn-primary" onclick="createKey()">Generate Key</button>'
-    +'<div id="newKeyDisplay" style="display:none;margin-top:14px">'
-      +'<div style="font-family:var(--mono);font-size:.6rem;color:var(--text3);margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase">Save this key — shown only once</div>'
-      +'<div class="key-box" id="newKeyVal"></div>'
-      +'<button class="copy-btn" style="margin-top:8px" onclick="copy(document.getElementById(\'newKeyVal\').textContent.trim())">Copy Key</button>'
-    +'</div>'
-    +'<div id="keyMsg"></div></div>'
-    +'<div class="card"><div class="card-head"><div class="card-title">My API Keys</div><button class="btn btn-ghost btn-sm" onclick="loadMyKeys()">Refresh</button></div>'
-    +'<div class="table-wrap"><table><thead><tr><th>Key</th><th>Label</th><th>Type</th><th>Expires</th><th>Daily</th><th>Total</th><th>Status</th><th></th></tr></thead>'
-    +'<tbody id="myKeysTable"><tr><td colspan="8" style="text-align:center;color:var(--text3);padding:22px">Loading…</td></tr></tbody></table></div></div>'
-    +'<div class="card"><div class="card-head"><div class="card-title">Endpoint Reference</div></div>'+(epItems||'<p style="color:var(--text3);font-size:.78rem">No API access granted.</p>')+'</div>';
-  loadMyKeys();
+    +'<button class="btn btn-cyan" onclick="createKey()">⚡ Generate Key</button>'
+    +'<div id="kNew" style="display:none;margin-top:14px"><div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:4px;letter-spacing:.08em;text-transform:uppercase">⚠ Copy now — shown once</div><div class="key-reveal" id="kVal"></div><button class="cp-btn" style="margin-top:8px" onclick="cp(document.getElementById(\'kVal\').textContent.trim())">Copy Key</button></div>'
+    +'<div id="kMsg"></div></div>'
+    +'<div class="card"><div class="card-hd"><div class="card-ttl">◆ My Keys</div><button class="btn btn-ghost btn-xs" onclick="loadKeys()">↺ Refresh</button></div>'
+    +'<div class="tbl-wrap"><table><thead><tr><th>Key</th><th>Label</th><th>Type</th><th>Expires</th><th>Daily</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody id="kTbl"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody></table></div></div>';
+  loadKeys();
 }
 
-function updateSliderLabel(){
-  var v=document.getElementById('keyDailyLimit').value;
-  document.getElementById('dailyLimitVal').textContent = v==='0' ? 'Unlimited' : v+' / day';
-}
-
-async function loadMyKeys(){
-  var tb=document.getElementById('myKeysTable'); if(!tb) return;
+async function loadKeys(){
+  var tb=document.getElementById('kTbl');if(!tb)return;
   var r=await api('/admin/api/my-keys');
-  if(!r.data.keys||!r.data.keys.length){
-    tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:22px">No keys created yet</td></tr>';return;
-  }
-  tb.innerHTML=r.data.keys.map(function(k){
-    var exp=new Date(k.expiresAt), expired=exp<new Date();
-    var st = !k.isActive ? '<span class="badge badge-red">Off</span>' : (expired ? '<span class="badge badge-yellow">Expired</span>' : '<span class="badge badge-green">Active</span>');
-    var daily = k.dailyLimit ? (k.usageToday||0)+'/'+k.dailyLimit : '∞';
-    return '<tr>'
-      +'<td style="font-family:var(--mono);font-size:.64rem;color:var(--primary2)">'+k.key.substring(0,14)+'… <button class="copy-btn" onclick="copy(\''+k.key+'\')">copy</button></td>'
-      +'<td>'+(k.label||'—')+'</td>'
-      +'<td>'+typeBadge(k.keyType)+'</td>'
-      +'<td style="font-family:var(--mono);font-size:.64rem">'+fmtDateShort(k.expiresAt)+'</td>'
-      +'<td style="font-family:var(--mono)">'+daily+'</td>'
-      +'<td style="font-family:var(--mono)">'+k.usageCount+'</td>'
-      +'<td>'+st+'</td>'
-      +'<td><button class="btn btn-danger btn-sm" onclick="deleteKey(\''+k._id+'\')">Delete</button></td>'
-    +'</tr>';
+  if(!r.d.keys||!r.d.keys.length){tb.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No keys yet</td></tr>';return}
+  tb.innerHTML=r.d.keys.map(function(k){
+    var exp=new Date(k.expiresAt)<new Date();
+    var st=!k.isActive?'<span class="badge b-red">Off</span>':exp?'<span class="badge b-amber">Expired</span>':'<span class="badge b-green">Active</span>';
+    var daily=k.dailyLimit?k.dailyUsed+'/'+k.dailyLimit:'∞';
+    var total=k.usageLimit?k.usageCount+'/'+k.usageLimit:k.usageCount+'/∞';
+    return'<tr><td style="font-family:var(--mono);font-size:.64rem;color:var(--cyan)">'+k.key.substring(0,14)+'… <button class="cp-btn" onclick="cp(\''+k.key+'\')">copy</button></td><td>'+(k.label||'—')+'</td><td>'+tbadge(k.keyType)+'</td><td style="font-family:var(--mono);font-size:.64rem">'+fdts(k.expiresAt)+'</td><td style="font-family:var(--mono)">'+daily+'</td><td style="font-family:var(--mono)">'+total+'</td><td>'+st+'</td><td><button class="btn btn-red btn-xs" onclick="delKey(\''+k._id+'\')">Del</button></td></tr>';
   }).join('');
 }
 
 async function createKey(){
-  var keyType=document.getElementById('keyType').value;
-  var label=document.getElementById('keyLabel').value.trim();
-  var duration=document.getElementById('keyDuration').value;
-  var dailyLimit=parseInt(document.getElementById('keyDailyLimit').value)||0;
-  var r=await api('/admin/api/my-keys',{method:'POST',body:JSON.stringify({label:label,duration:duration,dailyLimit:dailyLimit,keyType:keyType})});
-  if(r.status===201){
-    document.getElementById('newKeyVal').textContent=r.data.key;
-    document.getElementById('newKeyDisplay').style.display='block';
-    document.getElementById('keyLabel').value='';
-    loadMyKeys();
-  }else{
-    showMsg('keyMsg', r.data.error||'Failed to create key', false);
-  }
+  var t=document.getElementById('kType');
+  var l=document.getElementById('kLabel');
+  var d=document.getElementById('kDays');
+  var dl=document.getElementById('kDaily');
+  var tl=document.getElementById('kLimit');
+  if(!t)return;
+  var r=await api('/admin/api/my-keys',{method:'POST',body:JSON.stringify({keyType:t.value,label:l?l.value.trim():'',days:d?parseFloat(d.value):7,dailyLimit:dl?parseInt(dl.value)||0:0,usageLimit:tl?parseInt(tl.value)||0:0})});
+  if(r.s===201){
+    var nd=document.getElementById('kNew'),nv=document.getElementById('kVal');
+    if(nd&&nv){nv.textContent=r.d.key;nd.style.display='block'}
+    if(l)l.value='';
+    loadKeys();
+  }else{msg('kMsg',r.d.error||'Failed',false)}
 }
 
-async function deleteKey(id){
-  if(!confirm('Delete this API key? This cannot be undone.'))return;
+async function delKey(id){
+  if(!confirm('Delete this key?'))return;
   var r=await api('/admin/api/my-keys/'+id,{method:'DELETE'});
-  showMsg('keyMsg', r.data.message||r.data.error, r.status===200);
-  loadMyKeys();
+  msg('kMsg',r.d.message||r.d.error,r.s===200);loadKeys();
 }
 
-// ── SESSIONS ─────────────────────────────────────────────────────────
+// ── SESSIONS ──────────────────────────────────────────────────
 async function renderSessions(){
-  var mc=document.getElementById('mainContent');
-  mc.innerHTML='<div class="card"><div class="card-head"><div class="card-title">My Active Sessions</div><button class="btn btn-ghost btn-sm" onclick="renderSessions()">Refresh</button></div><div id="sessionsWrap" style="color:var(--text2);font-size:.78rem">Loading…</div></div>';
+  document.getElementById('mc').innerHTML='<div class="card"><div class="card-hd"><div class="card-ttl">⊙ My Sessions</div><button class="btn btn-ghost btn-xs" onclick="renderSessions()">↺</button></div><div id="sWrap" style="color:var(--muted);font-size:.78rem">Loading…</div></div>';
   var r=await api('/admin/api/sessions/me');
-  var wrap=document.getElementById('sessionsWrap');
-  if(!r.data.sessions||!r.data.sessions.length){wrap.innerHTML='<p style="color:var(--text3);font-size:.78rem">No active sessions found.</p>';return;}
-  wrap.innerHTML=r.data.sessions.map(function(s){
-    return '<div class="session-item"><div><div class="session-device">'+parseDevice(s.userAgent)+'</div><div class="session-meta">IP '+s.ip+' · Login '+fmtDate(s.createdAt)+'</div><div class="session-meta">Last seen '+fmtDate(s.lastSeen)+'</div></div><button class="btn btn-danger btn-sm" onclick="revokeSession(\''+s._id+'\')">Revoke</button></div>';
+  var w=document.getElementById('sWrap');
+  if(!r.d.sessions||!r.d.sessions.length){w.innerHTML='<p style="color:var(--muted);font-size:.78rem">No active sessions</p>';return}
+  w.innerHTML=r.d.sessions.map(function(s){
+    return'<div class="sess"><div><div style="font-weight:700;font-size:.8rem">'+dev(s.userAgent)+' '+s.ip+'</div><div style="font-family:var(--mono);font-size:.64rem;color:var(--muted);margin-top:3px">Login: '+fdt(s.createdAt)+'</div><div style="font-family:var(--mono);font-size:.64rem;color:var(--muted)">Last: '+fdt(s.lastSeen)+'</div></div><button class="btn btn-red btn-xs" onclick="revSess(\''+s._id+'\')">Revoke</button></div>';
   }).join('');
 }
-async function revokeSession(id){
-  if(!confirm('Revoke this session?'))return;
-  await api('/admin/api/sessions/'+id,{method:'DELETE'});
-  renderSessions();
-}
+async function revSess(id){if(!confirm('Revoke?'))return;await api('/admin/api/sessions/'+id,{method:'DELETE'});renderSessions()}
 
-// ── TEST CONSOLE ────────────────────────────────────────────────────
+// ── TEST ──────────────────────────────────────────────────────
 function renderTest(){
-  var mc=document.getElementById('mainContent');
-  var visible=visibleTypes();
-  if(!visible.length){mc.innerHTML='<div class="card"><p style="color:var(--text3);font-size:.78rem">No API access has been granted to your account.</p></div>';return;}
-  mc.innerHTML=visible.map(function(a){
-    return '<div class="card"><div class="card-head"><div class="card-title">Test — '+a.label+'</div></div>'
-      +'<div class="grid2">'
-        +'<div class="field"><label>'+a.paramName.toUpperCase()+'</label><input type="text" id="test_'+a.type+'_val" placeholder="Enter '+a.paramName+'…"></div>'
-        +'<div class="field"><label>API Key</label><input type="text" id="test_'+a.type+'_key" placeholder="'+a.prefix+'…"></div>'
+  var mc=document.getElementById('mc');
+  var vis=visible();
+  if(!vis.length){mc.innerHTML='<div class="card"><p style="color:var(--muted);font-size:.78rem">No API access granted</p></div>';return}
+  mc.innerHTML=vis.map(function(a){
+    return'<div class="card"><div class="card-hd"><div class="card-ttl">'+a.icon+' Test '+a.label+'</div></div>'
+      +'<div class="g2">'
+      +'<div class="fld"><label>'+a.paramName.toUpperCase()+'</label><input type="text" id="tv_'+a.type+'" placeholder="Enter '+a.paramName+'…"></div>'
+      +'<div class="fld"><label>API Key</label><input type="text" id="tk_'+a.type+'" placeholder="'+a.prefix+'…"></div>'
       +'</div>'
-      +'<button class="btn btn-primary btn-sm" onclick="testGeneric(\''+a.type+'\',\''+a.route+'\',\''+a.paramName+'\')">Run</button>'
-      +'<pre id="result_'+a.type+'" style="display:none;margin-top:12px"></pre>'
-    +'</div>';
+      +'<button class="btn btn-cyan btn-xs" onclick="testApi(\''+a.type+'\',\''+a.route+'\',\''+a.paramName+'\')">▶ Run</button>'
+      +'<pre id="tr_'+a.type+'" style="display:none;margin-top:12px"></pre>'
+      +'</div>';
   }).join('');
 }
-async function testGeneric(type,route,paramName){
-  var val=document.getElementById('test_'+type+'_val');
-  var key=document.getElementById('test_'+type+'_key');
-  var pre=document.getElementById('result_'+type);
-  if(!val.value.trim()||!key.value.trim()){alert('Fill both fields');return;}
-  var res=await fetch(route+'?'+paramName+'='+encodeURIComponent(val.value.trim())+'&apikey='+encodeURIComponent(key.value.trim()));
-  var data=await res.json();
-  pre.style.display='block'; pre.textContent=JSON.stringify(data,null,2);
+
+async function testApi(type,route,param){
+  var v=document.getElementById('tv_'+type);
+  var k=document.getElementById('tk_'+type);
+  var p=document.getElementById('tr_'+type);
+  if(!v||!k)return;
+  if(!v.value.trim()||!k.value.trim()){alert('Fill both fields');return}
+  p.style.display='block';p.textContent='Loading…';
+  var r=await fetch(route+'?'+param+'='+encodeURIComponent(v.value.trim())+'&apikey='+encodeURIComponent(k.value.trim()));
+  var d=await r.json();
+  p.textContent=JSON.stringify(d,null,2);
 }
 
-// ── INIT ─────────────────────────────────────────────────────────────
+// ── DOCS ──────────────────────────────────────────────────────
+function renderDocs(){
+  var mc=document.getElementById('mc');
+  var vis=visible();
+  var host=window.location.origin;
+  mc.innerHTML='<div class="card"><div class="card-hd"><div class="card-ttl">◉ API Reference</div></div>'
+    +vis.map(function(a){
+      return'<div class="ep"><span class="ep-m">GET</span><span class="ep-u">'+host+a.route+'?'+a.paramName+'=VALUE&apikey=YOUR_KEY</span><div class="ep-p">Prefix: '+a.prefix+'… · Type: '+a.type+'</div></div>';
+    }).join('')
+    +'</div>';
+}
+
+// ── INIT ──────────────────────────────────────────────────────
 async function init(){
-  var meRes=await api('/admin/api/me');
-  if(meRes.status!==200){window.location.href='/admin';return;}
-  document.getElementById('topUser').textContent=meRes.data.username||'—';
-  allowedTypes=meRes.data.allowedTypes||['all'];
-  var cfgRes=await api('/admin/api/config');
-  API_TYPES=cfgRes.data.apiTypes||[];
-  DURATIONS=cfgRes.data.durations||['7d'];
+  var m=await api('/admin/api/me');
+  if(m.s!==200){window.location.href='/admin';return}
+  document.getElementById('topUser').textContent=m.d.username||'—';
+  ALLOWED=m.d.allowedTypes||['all'];
+  var c=await api('/admin/api/config');
+  TYPES=c.d.apiTypes||[];
   renderKeys();
 }
 init();
