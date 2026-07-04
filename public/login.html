@@ -2,193 +2,267 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<title>Fighter Modz · Sign In</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700&family=Space+Mono:wght@400;600&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NexusAPI — Secure Access</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#171310;
-  --panel:rgba(255,247,237,0.045);
-  --panel-border:rgba(255,247,237,0.10);
-  --amber:#f0a84e;
-  --coral:#f0785a;
-  --sage:#9db88b;
-  --text:#f4ede4;
-  --text2:#b3a595;
-  --text3:#6f6255;
-  --danger:#e8756a;
-  --mono:'Space Mono',monospace;
-  --serif:'Fraunces',serif;
-  --sans:'Manrope',sans-serif;
+  --ink:#060914;
+  --void:#03040a;
+  --cyan:#00e5ff;
+  --violet:#7c3aed;
+  --pink:#f0abfc;
+  --surface:rgba(255,255,255,0.035);
+  --border:rgba(0,229,255,0.12);
+  --text:#e2e8f8;
+  --muted:#64748b;
+  --mono:'DM Mono',monospace;
+  --sans:'Syne',sans-serif;
 }
-html,body{height:100%}
+html,body{height:100%;overflow:hidden}
 body{
   font-family:var(--sans);
-  background:var(--bg);
+  background:var(--void);
   color:var(--text);
-  min-height:100vh;
   display:flex;align-items:center;justify-content:center;
-  position:relative;overflow:hidden;
+  min-height:100vh;position:relative;
+}
+
+/* ── GRID BG ── */
+.grid-bg{
+  position:fixed;inset:0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,229,255,0.04) 1px,transparent 1px);
+  background-size:40px 40px;
+  mask-image:radial-gradient(ellipse 80% 80% at 50% 50%,black 30%,transparent 100%);
+}
+
+/* ── GLOW ORBS ── */
+.orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none}
+.orb-a{width:500px;height:500px;background:rgba(124,58,237,0.12);top:-150px;left:-100px}
+.orb-b{width:400px;height:400px;background:rgba(0,229,255,0.08);bottom:-100px;right:-100px;animation:drift 10s ease-in-out infinite alternate}
+.orb-c{width:200px;height:200px;background:rgba(240,171,252,0.07);top:40%;left:55%}
+@keyframes drift{0%{transform:translate(0,0)}100%{transform:translate(-40px,-30px)}}
+
+/* ── SCAN LINES ── */
+.scanlines{
+  position:fixed;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.03) 3px,rgba(0,0,0,0.03) 4px);
+}
+
+/* ── WRAPPER ── */
+.wrapper{
+  position:relative;z-index:10;
+  width:100%;max-width:400px;
   padding:20px;
+  animation:up .8s cubic-bezier(.16,1,.3,1) both;
 }
-/* soft grain-paper backdrop */
-body::before{
-  content:'';position:fixed;inset:0;z-index:0;
-  background:
-    radial-gradient(ellipse 70% 55% at 22% 15%, rgba(240,168,78,0.16) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 60% at 85% 80%, rgba(240,120,90,0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 50% at 60% 100%, rgba(157,184,139,0.07) 0%, transparent 55%);
-}
-.texture{
-  position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5;
-  background-image:radial-gradient(circle at 1px 1px, rgba(244,237,228,0.05) 1px, transparent 0);
-  background-size:22px 22px;
-}
-.ring{
-  position:fixed;border-radius:50%;pointer-events:none;z-index:0;
-  border:1px solid rgba(240,168,78,0.12);
-}
-.ring1{width:520px;height:520px;top:-180px;right:-160px}
-.ring2{width:340px;height:340px;bottom:-120px;left:-100px;border-color:rgba(240,120,90,0.1)}
+@keyframes up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 
-.wrap{position:relative;z-index:10;width:100%;max-width:392px;animation:rise .65s cubic-bezier(.16,1,.3,1) both}
-@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-
-.brand{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:30px}
-.mark{
-  width:50px;height:50px;border-radius:50%;
-  background:linear-gradient(150deg,var(--amber),var(--coral));
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--serif);font-weight:700;font-size:1.3rem;color:#1a1310;
-  box-shadow:0 8px 28px rgba(240,140,70,0.35);
+/* ── LOGO ── */
+.logo{text-align:center;margin-bottom:32px}
+.logo-hex{
+  width:56px;height:56px;margin:0 auto 16px;
+  position:relative;display:flex;align-items:center;justify-content:center;
 }
-.title{font-family:var(--serif);font-weight:600;font-size:1.55rem;letter-spacing:-0.01em}
-.subtitle{font-family:var(--mono);font-size:.63rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text3)}
-
-.panel{
-  background:var(--panel);
-  border:1px solid var(--panel-border);
-  border-radius:6px;
-  padding:34px 30px;
-  backdrop-filter:blur(18px);
-  box-shadow:0 24px 70px rgba(0,0,0,.45);
-  position:relative;
+.logo-hex::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,var(--cyan),var(--violet));
+  clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+  animation:hexspin 6s linear infinite;
 }
-.panel::before{
-  content:'';position:absolute;top:0;left:24px;right:24px;height:1px;
-  background:linear-gradient(90deg,transparent,rgba(240,168,78,0.35),transparent);
+@keyframes hexspin{to{filter:hue-rotate(360deg)}}
+.logo-hex-inner{
+  position:relative;z-index:1;
+  font-size:20px;
+}
+.logo-name{
+  font-size:1.4rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;
+  background:linear-gradient(135deg,#fff 0%,var(--cyan) 50%,var(--violet) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.logo-sub{
+  font-family:var(--mono);font-size:.58rem;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--muted);margin-top:4px;
 }
 
+/* ── CARD ── */
+.card{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:32px 28px;
+  backdrop-filter:blur(24px) saturate(1.4);
+  -webkit-backdrop-filter:blur(24px) saturate(1.4);
+  box-shadow:0 0 0 1px rgba(255,255,255,0.03) inset,0 4px 80px rgba(0,0,0,0.6);
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(0,229,255,0.4),transparent);
+}
+
+/* ── FIELD ── */
 .field{margin-bottom:18px}
-.field label{
-  display:block;font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--text3);margin-bottom:8px;
+.field-label{
+  display:block;font-family:var(--mono);font-size:.6rem;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:8px;
 }
-.input-wrap input{
-  width:100%;background:rgba(255,247,237,0.03);
-  border:1px solid rgba(255,247,237,0.12);
-  border-radius:4px;padding:12px 14px;
-  color:var(--text);font-family:var(--sans);font-size:.86rem;
-  outline:none;transition:all .2s;
+.field-box{
+  position:relative;display:flex;align-items:center;
+  border:1px solid rgba(255,255,255,0.08);
+  border-radius:10px;
+  background:rgba(255,255,255,0.02);
+  transition:border-color .2s,box-shadow .2s;
 }
-.input-wrap input:focus{
-  border-color:rgba(240,168,78,0.55);
-  box-shadow:0 0 0 3px rgba(240,168,78,0.1);
+.field-box:focus-within{
+  border-color:rgba(0,229,255,0.35);
+  box-shadow:0 0 0 3px rgba(0,229,255,0.07);
 }
-.input-wrap input::placeholder{color:var(--text3)}
+.field-ic{
+  position:absolute;left:14px;font-size:12px;opacity:.4;
+  pointer-events:none;
+}
+.field-box input{
+  width:100%;background:transparent;border:none;outline:none;
+  padding:12px 14px 12px 38px;
+  color:var(--text);font-family:var(--sans);font-size:.85rem;
+}
+.field-box input::placeholder{color:rgba(255,255,255,0.2)}
 
-.btn{
-  width:100%;padding:13px;margin-top:8px;border:none;border-radius:4px;
-  background:linear-gradient(135deg,var(--amber),var(--coral));
-  color:#1a1310;font-family:var(--sans);font-weight:700;font-size:.85rem;
-  cursor:pointer;transition:all .2s;letter-spacing:.01em;
-  box-shadow:0 10px 26px rgba(240,140,70,0.3);
-}
-.btn:hover{transform:translateY(-1px);box-shadow:0 14px 34px rgba(240,140,70,0.4)}
-.btn:disabled{opacity:.6;cursor:default;transform:none}
+/* ── LINE ── */
+.sep{display:flex;align-items:center;gap:10px;margin:20px 0}
+.sep-line{flex:1;height:1px;background:rgba(255,255,255,0.06)}
+.sep-text{font-family:var(--mono);font-size:.55rem;letter-spacing:.16em;color:var(--muted);text-transform:uppercase}
 
-.err{
-  margin-top:14px;padding:11px 14px;border-radius:4px;
-  background:rgba(232,117,106,0.1);border:1px solid rgba(232,117,106,0.3);
-  color:var(--danger);font-family:var(--mono);font-size:.68rem;
-  display:none;align-items:center;gap:8px;letter-spacing:.01em;
+/* ── BUTTON ── */
+.btn-sign{
+  width:100%;padding:13px;border:none;border-radius:11px;
+  background:linear-gradient(135deg,var(--cyan),var(--violet));
+  color:#fff;font-family:var(--sans);font-size:.82rem;font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;cursor:pointer;
+  position:relative;overflow:hidden;transition:all .3s;
+  box-shadow:0 4px 24px rgba(124,58,237,0.35);
+}
+.btn-sign::after{
+  content:'';position:absolute;top:0;left:-120%;width:60%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);
+  transform:skewX(-20deg);animation:shine 3s ease-in-out infinite;
+}
+@keyframes shine{0%{left:-120%}30%,100%{left:140%}}
+.btn-sign:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(124,58,237,0.5)}
+.btn-sign:disabled{opacity:.6;cursor:not-allowed;transform:none}
+
+/* ── ERROR ── */
+.err-box{
+  display:none;margin-top:12px;
+  padding:10px 14px;border-radius:8px;
+  background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);
+  color:#fca5a5;font-family:var(--mono);font-size:.68rem;letter-spacing:.04em;
+  align-items:center;gap:8px;
 }
 
+/* ── STATUS ── */
+.status{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-top:14px;padding:8px 14px;
+  background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);
+  border-radius:10px;backdrop-filter:blur(10px);
+}
+.s-dot{width:6px;height:6px;border-radius:50%;background:#22d3ee;box-shadow:0 0 8px #22d3ee;animation:blink 2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.s-txt{font-family:var(--mono);font-size:.58rem;color:var(--muted);letter-spacing:.08em}
+.s-id{font-family:var(--mono);font-size:.55rem;color:rgba(255,255,255,0.2)}
+
+/* ── FOOTER ── */
 .foot{
-  margin-top:20px;display:flex;align-items:center;justify-content:center;gap:9px;
-  font-family:var(--mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);
+  text-align:center;margin-top:18px;
+  font-family:var(--mono);font-size:.56rem;letter-spacing:.14em;
+  color:rgba(255,255,255,0.15);text-transform:uppercase;
 }
-.foot .dot{width:5px;height:5px;border-radius:50%;background:var(--sage);box-shadow:0 0 6px var(--sage);animation:pulse 2.2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 </style>
 </head>
 <body>
+<div class="grid-bg"></div>
+<div class="orb orb-a"></div>
+<div class="orb orb-b"></div>
+<div class="orb orb-c"></div>
+<div class="scanlines"></div>
 
-<div class="texture"></div>
-<div class="ring ring1"></div>
-<div class="ring ring2"></div>
-
-<div class="wrap">
-  <div class="brand">
-    <div class="mark">F</div>
-    <div class="title">Fighter Modz</div>
-    <div class="subtitle">API Access Console</div>
+<div class="wrapper">
+  <div class="logo">
+    <div class="logo-hex"><div class="logo-hex-inner">⬡</div></div>
+    <div class="logo-name">NexusAPI</div>
+    <div class="logo-sub">Secure Admin Portal</div>
   </div>
 
-  <div class="panel">
+  <div class="card">
     <div class="field">
-      <label>Username</label>
-      <div class="input-wrap">
-        <input type="text" id="usr" placeholder="your username" autocomplete="username">
+      <label class="field-label">Username</label>
+      <div class="field-box">
+        <span class="field-ic">◈</span>
+        <input type="text" id="usr" placeholder="Enter username" autocomplete="username">
       </div>
     </div>
-    <div class="field" style="margin-bottom:6px">
-      <label>Password</label>
-      <div class="input-wrap">
+
+    <div class="field" style="margin-bottom:0">
+      <label class="field-label">Password</label>
+      <div class="field-box">
+        <span class="field-ic">◇</span>
         <input type="password" id="pwd" placeholder="••••••••" autocomplete="current-password">
       </div>
     </div>
 
-    <button class="btn" id="loginBtn" onclick="doLogin()">Sign In</button>
-    <div id="err" class="err"></div>
+    <div class="sep">
+      <div class="sep-line"></div>
+      <div class="sep-text">Authenticate</div>
+      <div class="sep-line"></div>
+    </div>
+
+    <button class="btn-sign" id="btn" onclick="login()">Access Portal</button>
+    <div class="err-box" id="err"></div>
   </div>
 
-  <div class="foot"><span class="dot"></span> Encrypted session · role-based access</div>
+  <div class="status">
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="s-dot"></div>
+      <div class="s-txt">All systems operational</div>
+    </div>
+    <div class="s-id">v2.0.0 · NEXUS</div>
+  </div>
+
+  <div class="foot">Credit: @Boss_Hcrr &nbsp;·&nbsp; Developer: @Boss_Hcrr</div>
 </div>
 
 <script>
-async function doLogin(){
+async function login(){
   var usr=document.getElementById('usr').value.trim();
   var pwd=document.getElementById('pwd').value;
   var err=document.getElementById('err');
-  var btn=document.getElementById('loginBtn');
+  var btn=document.getElementById('btn');
   err.style.display='none';
-  if(!usr||!pwd){
-    err.textContent='All fields are required';
-    err.style.display='flex';
-    return;
-  }
-  btn.disabled=true; btn.textContent='Signing in…';
+  if(!usr||!pwd){err.textContent='⚠ All fields required';err.style.display='flex';return}
+  btn.textContent='Verifying…';btn.disabled=true;
   try{
-    var res=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:usr,password:pwd})});
-    var data=await res.json();
-    if(res.ok){
-      btn.textContent='Welcome';
-      setTimeout(function(){window.location.href=data.role==='superadmin'?'/admin/dashboard':'/admin/panel';},350);
-    } else {
-      err.textContent=data.error||'Authentication failed';
+    var r=await fetch('/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:usr,password:pwd})});
+    var d=await r.json();
+    if(r.ok){
+      btn.textContent='✓ Access Granted';
+      btn.style.background='linear-gradient(135deg,#10b981,#059669)';
+      setTimeout(function(){window.location.href=d.role==='superadmin'?'/admin/dashboard':'/admin/panel'},600);
+    }else{
+      err.textContent='✗ '+(d.error||'Authentication failed');
       err.style.display='flex';
-      btn.disabled=false; btn.textContent='Sign In';
+      btn.textContent='Access Portal';btn.disabled=false;
     }
   }catch(e){
-    err.textContent='Network error — check connection';
-    err.style.display='flex';
-    btn.disabled=false; btn.textContent='Sign In';
+    err.textContent='✗ Network error';err.style.display='flex';
+    btn.textContent='Access Portal';btn.disabled=false;
   }
 }
-document.addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+document.addEventListener('keydown',function(e){if(e.key==='Enter')login()});
 </script>
 </body>
 </html>
