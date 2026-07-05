@@ -28,6 +28,7 @@ const API_REGISTRY = [
   { type: "rto",      label: "RTO Info",      prefix: "rto_",  route: "/rto",      paramName: "rc",     icon: "🚗", envKey: "UPSTREAM_RTO_API_URL" },
   { type: "ip",       label: "IP Lookup",     prefix: "ip_",   route: "/iplookup", paramName: "ip",     icon: "🌐", envKey: "UPSTREAM_IP_API_URL" },
   { type: "gst",      label: "GST Info",      prefix: "gst_",  route: "/gst",      paramName: "gstin",  icon: "🏢", envKey: "UPSTREAM_GST_API_URL" },
+  { type: "pan2gst",  label: "PAN to GST",    prefix: "p2g_",  route: "/pan2gst",  paramName: "pan",    icon: "🔎", envKey: "UPSTREAM_PAN_GST_API_URL" },
 ];
 
 const AdminSchema = new mongoose.Schema({
@@ -515,12 +516,38 @@ app.get("/gst", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   try {
     if (!process.env.UPSTREAM_GST_API_URL) return res.status(503).json({ error: "GST API not configured", ...CREDIT });
-    const r = await axios.get(`${process.env.UPSTREAM_GST_API_URL}?gstin=${encodeURIComponent(gstin)}`, { timeout: 10000 });
+    const r = await axios.get(`${process.env.UPSTREAM_GST_API_URL}?gstin=${encodeURIComponent(gstin)}`, {
+      timeout: 10000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
     await incUsage(keyDoc._id);
     return res.json({ ...r.data, ...CREDIT });
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
     return res.status(500).json({ error: "GST API error", ...CREDIT });
+  }
+});
+
+// ─── PUBLIC API: PAN TO GST ───────────────────────────────────────────────────
+app.get("/pan2gst", async (req, res) => {
+  const { pan, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!pan) return res.status(400).json({ error: "pan required (e.g. AAYFK4129N)", ...CREDIT });
+  if (!key) return res.status(401).json({ error: "API key required", ...CREDIT });
+  if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(pan)) return res.status(400).json({ error: "Invalid PAN format", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "pan2gst");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  try {
+    if (!process.env.UPSTREAM_PAN_GST_API_URL) return res.status(503).json({ error: "PAN to GST API not configured", ...CREDIT });
+    const r = await axios.get(`${process.env.UPSTREAM_PAN_GST_API_URL}?pan=${encodeURIComponent(pan.toUpperCase())}`, {
+      timeout: 10000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    return res.json({ ...r.data, ...CREDIT });
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: "PAN to GST API error", ...CREDIT });
   }
 });
 
