@@ -13,15 +13,13 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// ─── CREDIT ──────────────────────────────────────────────────────────────────
 const CREDIT = { credit: "@Boss_Hcrr", developer: "@Boss_Hcrr" };
 
-// ─── API REGISTRY ─────────────────────────────────────────────────────────────
 const API_REGISTRY = [
-  { type: "number",   label: "Number Info",   prefix: "num_",  route: "/lookup",   paramName: "number", icon: "📞", envKey: "NUM_INFO" },
+  { type: "number",   label: "Number Info",   prefix: "num_",  route: "/lookup",   paramName: "number", icon: "📞", envKey: "UPSTREAM_API_URL" },
   { type: "telegram", label: "Telegram Info", prefix: "tg_",   route: "/tg",       paramName: "userid", icon: "✈️",  envKey: "UPSTREAM_TG_API_URL" },
   { type: "upi",      label: "UPI Info",      prefix: "upi_",  route: "/upi",      paramName: "upi",    icon: "💳", envKey: "UPSTREAM_UPI_API_URL" },
   { type: "imei",     label: "IMEI Info",     prefix: "imei_", route: "/imei",     paramName: "imei",   icon: "📱", envKey: "UPSTREAM_IMEI_API_URL" },
@@ -32,7 +30,6 @@ const API_REGISTRY = [
   { type: "gst",      label: "GST Info",      prefix: "gst_",  route: "/gst",      paramName: "gstin",  icon: "🏢", envKey: "UPSTREAM_GST_API_URL" },
 ];
 
-// ─── SCHEMAS ──────────────────────────────────────────────────────────────────
 const AdminSchema = new mongoose.Schema({
   username:     { type: String, unique: true, required: true },
   password:     { type: String, required: true },
@@ -70,7 +67,6 @@ const Admin   = mongoose.model("Admin", AdminSchema);
 const ApiKey  = mongoose.model("ApiKey", ApiKeySchema);
 const Session = mongoose.model("Session", SessionSchema);
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
 function makeKey(type) {
   const api = API_REGISTRY.find(a => a.type === type);
   const prefix = api ? api.prefix : "key_";
@@ -100,14 +96,24 @@ async function cleanSessions() {
   await Session.deleteMany({ expiresAt: { $lt: new Date() } });
 }
 
+// ─── AUTH MIDDLEWARE ── FIXED: strict token validation ───────────────────────
 async function authMiddleware(req, res, next) {
   const token = req.cookies?.token || req.headers?.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  if (!token) return res.status(401).json({ error: "Unauthorized - No token" });
+  if (!process.env.JWT_SECRET) return res.status(500).json({ error: "Server misconfigured" });
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
-    await Session.findOneAndUpdate({ sessionId: req.user.sessionId }, { lastSeen: new Date() });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify session exists in DB
+    const session = await Session.findOne({ sessionId: decoded.sessionId });
+    if (!session) return res.status(401).json({ error: "Session expired or invalid" });
+    if (session.expiresAt < new Date()) {
+      await Session.findByIdAndDelete(session._id);
+      return res.status(401).json({ error: "Session expired" });
+    }
+    await Session.findByIdAndUpdate(session._id, { lastSeen: new Date() });
+    req.user = decoded;
     next();
-  } catch {
+  } catch (err) {
     return res.status(401).json({ error: "Invalid or expired token" });
   }
 }
@@ -120,24 +126,19 @@ function superOnly(req, res, next) {
 
 async function validateKey(apiKey, requiredType) {
   const doc = await ApiKey.findOne({ key: apiKey });
-  if (!doc)           return { error: "Invalid API key",           status: 401 };
-  if (!doc.isActive)  return { error: "API key disabled",          status: 403 };
+  if (!doc)          return { error: "Invalid API key", status: 401 };
+  if (!doc.isActive) return { error: "API key disabled", status: 403 };
   if (doc.keyType !== requiredType) return { error: `Key not authorized for ${requiredType}`, status: 403 };
-  if (doc.expiresAt < new Date())   return { error: "API key expired",            status: 403 };
+  if (doc.expiresAt < new Date())   return { error: "API key expired", status: 403 };
   if (doc.usageLimit && doc.usageCount >= doc.usageLimit) return { error: "Usage limit reached", status: 429 };
-
-  // Daily limit check
   if (doc.dailyLimit) {
     const now = new Date();
-    const resetTime = new Date(doc.dailyReset);
-    if (now - resetTime > 86400000) {
-      // Reset daily count
+    if (now - new Date(doc.dailyReset) > 86400000) {
       await ApiKey.findByIdAndUpdate(doc._id, { dailyUsed: 0, dailyReset: now });
       doc.dailyUsed = 0;
     }
     if (doc.dailyUsed >= doc.dailyLimit) return { error: "Daily limit reached", status: 429 };
   }
-
   return { keyDoc: doc };
 }
 
@@ -145,14 +146,19 @@ async function incUsage(keyId) {
   await ApiKey.findByIdAndUpdate(keyId, { $inc: { usageCount: 1, dailyUsed: 1 }, lastUsedAt: new Date() });
 }
 
-// ─── HTML ROUTES ──────────────────────────────────────────────────────────────
+// ─── HTML ROUTES ── FIXED: proper login bypass protection ────────────────────
 app.get("/admin", (req, res) => {
   const token = req.cookies?.token;
-  if (token) {
+  if (token && process.env.JWT_SECRET) {
     try {
       const user = jwt.verify(token, process.env.JWT_SECRET);
-      return res.redirect(isSuperAdmin(user.username) ? "/admin/dashboard" : "/admin/panel");
-    } catch {}
+      if (user && user.username) {
+        return res.redirect(isSuperAdmin(user.username) ? "/admin/dashboard" : "/admin/panel");
+      }
+    } catch (e) {
+      // Invalid token — clear it and show login
+      res.clearCookie("token");
+    }
   }
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
@@ -176,7 +182,7 @@ app.post("/admin/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     const sessionId = await createSession(username, req);
     const token = signToken({ username, role: "superadmin" }, sessionId);
-    res.cookie("token", token, { httpOnly: true, maxAge: 8 * 3600 * 1000 });
+    res.cookie("token", token, { httpOnly: true, sameSite: "lax", maxAge: 8 * 3600 * 1000 });
     return res.json({ success: true, role: "superadmin" });
   }
 
@@ -185,7 +191,7 @@ app.post("/admin/login", async (req, res) => {
     return res.status(401).json({ error: "Invalid credentials" });
   const sessionId = await createSession(username, req);
   const token = signToken({ username, role: "admin" }, sessionId);
-  res.cookie("token", token, { httpOnly: true, maxAge: 8 * 3600 * 1000 });
+  res.cookie("token", token, { httpOnly: true, sameSite: "lax", maxAge: 8 * 3600 * 1000 });
   return res.json({ success: true, role: "admin" });
 });
 
@@ -210,7 +216,6 @@ app.get("/admin/api/config", authMiddleware, (req, res) => {
   });
 });
 
-// ─── STATS ────────────────────────────────────────────────────────────────────
 app.get("/admin/api/stats", authMiddleware, superOnly, async (req, res) => {
   await cleanSessions();
   const [totalAdmins, totalKeys, activeKeys, totalSessions] = await Promise.all([
@@ -222,7 +227,6 @@ app.get("/admin/api/stats", authMiddleware, superOnly, async (req, res) => {
   res.json({ totalAdmins, totalKeys, activeKeys, totalSessions });
 });
 
-// ─── SESSION ROUTES ───────────────────────────────────────────────────────────
 app.get("/admin/api/sessions/me", authMiddleware, async (req, res) => {
   await cleanSessions();
   const sessions = await Session.find({ username: req.user.username }).sort({ lastSeen: -1 }).lean();
@@ -255,7 +259,6 @@ app.delete("/admin/api/sessions/user/:username", authMiddleware, superOnly, asyn
   res.json({ message: "Sessions revoked" });
 });
 
-// ─── ADMIN MANAGEMENT ────────────────────────────────────────────────────────
 app.get("/admin/api/admins", authMiddleware, superOnly, async (req, res) => {
   const admins = await Admin.find({}, { password: 0 }).lean();
   const result = await Promise.all(admins.map(async a => ({
@@ -285,7 +288,6 @@ app.delete("/admin/api/admins/:username", authMiddleware, superOnly, async (req,
   res.json({ message: `Admin "${req.params.username}" deleted` });
 });
 
-// ─── KEY MANAGEMENT ───────────────────────────────────────────────────────────
 app.get("/admin/api/my-keys", authMiddleware, async (req, res) => {
   const keys = await ApiKey.find({ createdBy: req.user.username }).sort({ createdAt: -1 }).lean();
   res.json({ keys });
@@ -295,19 +297,16 @@ app.post("/admin/api/my-keys", authMiddleware, async (req, res) => {
   const { label, days = 7, usageLimit = 0, dailyLimit = 0, keyType = "number" } = req.body;
   if (!API_REGISTRY.find(a => a.type === keyType))
     return res.status(400).json({ error: "Invalid key type" });
-
   if (!isSuperAdmin(req.user.username)) {
     const admin = await Admin.findOne({ username: req.user.username });
     const allowed = admin?.allowedTypes || ["all"];
     if (!allowed.includes("all") && !allowed.includes(keyType))
       return res.status(403).json({ error: `No access to ${keyType} keys` });
   }
-
   const expiresAt = new Date(Date.now() + days * 24 * 3600 * 1000);
   const key = makeKey(keyType);
   await ApiKey.create({
-    key, label: label || "", createdBy: req.user.username,
-    expiresAt, keyType,
+    key, label: label || "", createdBy: req.user.username, expiresAt, keyType,
     usageLimit: usageLimit > 0 ? usageLimit : null,
     dailyLimit: dailyLimit > 0 ? dailyLimit : null,
   });
@@ -333,7 +332,7 @@ app.delete("/admin/api/all-keys/:id", authMiddleware, superOnly, async (req, res
   res.json({ message: "Key deleted" });
 });
 
-// ─── PUBLIC API: NUMBER LOOKUP ─────────────────────────────────────────────────
+// ─── PUBLIC API: NUMBER LOOKUP ── FIXED: UPSTREAM_API_URL ────────────────────
 app.get("/lookup", async (req, res) => {
   const { number, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -344,15 +343,21 @@ app.get("/lookup", async (req, res) => {
   const { error, status, keyDoc } = await validateKey(key, "number");
   if (error) return res.status(status).json({ error, ...CREDIT });
 
+  const baseUrl = process.env.UPSTREAM_API_URL;
+  if (!baseUrl) return res.status(503).json({ error: "Number API not configured", ...CREDIT });
+
   try {
-    const upstreamUrl = `${process.env.NUM_INFO}?number=${encodeURIComponent(number)}`;
+    const upstreamUrl = `${baseUrl}?number=${encodeURIComponent(number)}`;
     const response = await axios.get(upstreamUrl, {
       timeout: 15000,
-      headers: { "ngrok-skip-browser-warning": "true", "User-Agent": "Mozilla/5.0" }
+      headers: {
+        "ngrok-skip-browser-warning": "true",
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json"
+      }
     });
     await incUsage(keyDoc._id);
     const data = response.data;
-    // Inject credit into response
     if (data && typeof data === "object") {
       if (data.data && typeof data.data === "object") {
         data.data.credit = "@Boss_Hcrr";
@@ -368,7 +373,6 @@ app.get("/lookup", async (req, res) => {
   }
 });
 
-// ─── PUBLIC API: TELEGRAM ─────────────────────────────────────────────────────
 app.get("/tg", async (req, res) => {
   const { userid, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -377,11 +381,8 @@ app.get("/tg", async (req, res) => {
   const { error, status, keyDoc } = await validateKey(key, "telegram");
   if (error) return res.status(status).json({ error, ...CREDIT });
   try {
-    const url = process.env.UPSTREAM_TG_API_URL
-      ? `${process.env.UPSTREAM_TG_API_URL}?type=sms&term=${encodeURIComponent(userid)}`
-      : null;
-    if (!url) return res.status(503).json({ error: "Telegram API not configured", ...CREDIT });
-    const r = await axios.get(url, { timeout: 10000 });
+    if (!process.env.UPSTREAM_TG_API_URL) return res.status(503).json({ error: "Telegram API not configured", ...CREDIT });
+    const r = await axios.get(`${process.env.UPSTREAM_TG_API_URL}?type=sms&term=${encodeURIComponent(userid)}`, { timeout: 10000 });
     await incUsage(keyDoc._id);
     return res.json({ ...r.data, ...CREDIT });
   } catch (err) {
@@ -390,12 +391,11 @@ app.get("/tg", async (req, res) => {
   }
 });
 
-// ─── PUBLIC API: UPI ──────────────────────────────────────────────────────────
 app.get("/upi", async (req, res) => {
   const { upi, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
-  if (!upi)  return res.status(400).json({ error: "upi required", ...CREDIT });
-  if (!key)  return res.status(401).json({ error: "API key required", ...CREDIT });
+  if (!upi) return res.status(400).json({ error: "upi required", ...CREDIT });
+  if (!key) return res.status(401).json({ error: "API key required", ...CREDIT });
   if (!upi.includes("@")) return res.status(400).json({ error: "Invalid UPI format", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "upi");
   if (error) return res.status(status).json({ error, ...CREDIT });
@@ -405,7 +405,6 @@ app.get("/upi", async (req, res) => {
       await incUsage(keyDoc._id);
       return res.json({ ...r.data, ...CREDIT });
     }
-    // Fallback local UPI info
     const [prefix, handle] = upi.split("@");
     const banks = { okhdfcbank:"HDFC Bank", okicici:"ICICI Bank", oksbi:"SBI", ybl:"Yes Bank", apl:"Axis Bank", paytm:"Paytm", fam:"PhonePe", gpay:"Google Pay", airtel:"Airtel Payments Bank" };
     await incUsage(keyDoc._id);
@@ -416,7 +415,6 @@ app.get("/upi", async (req, res) => {
   }
 });
 
-// ─── PUBLIC API: IMEI ─────────────────────────────────────────────────────────
 app.get("/imei", async (req, res) => {
   const { imei, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -436,7 +434,6 @@ app.get("/imei", async (req, res) => {
   }
 });
 
-// ─── PUBLIC API: AADHAR ───────────────────────────────────────────────────────
 app.get("/aadhar", async (req, res) => {
   const { aadhar, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -456,7 +453,6 @@ app.get("/aadhar", async (req, res) => {
   }
 });
 
-// ─── PUBLIC API: PAN ──────────────────────────────────────────────────────────
 app.get("/pan", async (req, res) => {
   const { pan, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -476,7 +472,6 @@ app.get("/pan", async (req, res) => {
   }
 });
 
-// ─── PUBLIC API: RTO ──────────────────────────────────────────────────────────
 app.get("/rto", async (req, res) => {
   const { rc, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -495,7 +490,6 @@ app.get("/rto", async (req, res) => {
   }
 });
 
-// ─── PUBLIC API: IP LOOKUP ────────────────────────────────────────────────────
 app.get("/iplookup", async (req, res) => {
   const { ip, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -504,7 +498,6 @@ app.get("/iplookup", async (req, res) => {
   const { error, status, keyDoc } = await validateKey(key, "ip");
   if (error) return res.status(status).json({ error, ...CREDIT });
   try {
-    // Use ip-api.com (free, no key needed)
     const r = await axios.get(`http://ip-api.com/json/${encodeURIComponent(targetIp)}?fields=status,message,country,regionName,city,zip,lat,lon,isp,org,as,query`, { timeout: 10000 });
     await incUsage(keyDoc._id);
     return res.json({ ...r.data, ...CREDIT });
@@ -513,7 +506,6 @@ app.get("/iplookup", async (req, res) => {
   }
 });
 
-// ─── PUBLIC API: GST ──────────────────────────────────────────────────────────
 app.get("/gst", async (req, res) => {
   const { gstin, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -532,7 +524,6 @@ app.get("/gst", async (req, res) => {
   }
 });
 
-// ─── START ────────────────────────────────────────────────────────────────────
 async function start() {
   await mongoose.connect(process.env.MONGODB_URI);
   console.log("MongoDB connected");
