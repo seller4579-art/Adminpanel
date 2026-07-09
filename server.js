@@ -29,6 +29,7 @@ const API_REGISTRY = [
   { type: "ip",       label: "IP Lookup",     prefix: "ip_",   route: "/iplookup", paramName: "ip",     icon: "🌐", envKey: "UPSTREAM_IP_API_URL" },
   { type: "gst",      label: "GST Info",      prefix: "gst_",  route: "/gst",      paramName: "gstin",  icon: "🏢", envKey: "UPSTREAM_GST_API_URL" },
   { type: "pan2gst",  label: "PAN to GST",    prefix: "p2g_",  route: "/pan2gst",  paramName: "pan",    icon: "🔎", envKey: "UPSTREAM_PAN_GST_API_URL" },
+  { type: "osint",    label: "Number Adv",    prefix: "osin_", route: "/osint",    paramName: "query",  icon: "🔍", envKey: "OSINT_API_URL" },
 ];
 
 const AdminSchema = new mongoose.Schema({
@@ -548,6 +549,36 @@ app.get("/pan2gst", async (req, res) => {
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
     return res.status(500).json({ error: "PAN to GST API error", ...CREDIT });
+  }
+});
+
+// ─── PUBLIC API: OSINT / NUMBER ADV ──────────────────────────────────────────
+app.get("/osint", async (req, res) => {
+  const { query, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!query) return res.status(400).json({ error: "query required (phone number)", ...CREDIT });
+  if (!key)   return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "osint");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  try {
+    const baseUrl = process.env.OSINT_API_URL;
+    const osintKey = process.env.OSINT_API_KEY;
+    if (!baseUrl) return res.status(503).json({ error: "OSINT API not configured", ...CREDIT });
+    const r = await axios.get(baseUrl, {
+      params: { key: osintKey, query: query },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    const data = r.data;
+    if (data && typeof data === "object") {
+      data.credit = "@Boss_Hcrr";
+      data.developer = "@Boss_Hcrr";
+    }
+    return res.json(data);
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: "OSINT API error: " + err.message, ...CREDIT });
   }
 });
 
