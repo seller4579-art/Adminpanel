@@ -30,6 +30,8 @@ const API_REGISTRY = [
   { type: "gst",      label: "GST Info",      prefix: "gst_",  route: "/gst",      paramName: "gstin",  icon: "🏢", envKey: "UPSTREAM_GST_API_URL" },
   { type: "pan2gst",  label: "PAN to GST",    prefix: "p2g_",  route: "/pan2gst",  paramName: "pan",    icon: "🔎", envKey: "UPSTREAM_PAN_GST_API_URL" },
   { type: "osint",    label: "Number Adv",    prefix: "osin_", route: "/osint",    paramName: "query",  icon: "🔍", envKey: "OSINT_API_URL" },
+  { type: "tgnum",    label: "TG to Number",  prefix: "tgn_",  route: "/tgnum",    paramName: "tgusername", icon: "📲", envKey: "UPSTREAM_TG_NUM_URL" },
+  { type: "aadharv2", label: "Aadhar Adv",    prefix: "aadv_", route: "/aadharv2", paramName: "aadhar", icon: "🆔", envKey: "UPSTREAM_AADHAR_V2_URL" },
 ];
 
 const AdminSchema = new mongoose.Schema({
@@ -579,6 +581,65 @@ app.get("/osint", async (req, res) => {
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
     return res.status(500).json({ error: "OSINT API error: " + err.message, ...CREDIT });
+  }
+});
+
+// ─── PUBLIC API: TG TO NUMBER ────────────────────────────────────────────────
+app.get("/tgnum", async (req, res) => {
+  const { tgusername, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!tgusername) return res.status(400).json({ error: "tgusername required (e.g. @username)", ...CREDIT });
+  if (!key)        return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "tgnum");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  try {
+    const baseUrl = process.env.UPSTREAM_TG_NUM_URL;
+    if (!baseUrl) return res.status(503).json({ error: "TG Num API not configured", ...CREDIT });
+    const r = await axios.get(baseUrl, {
+      params: { tgusername },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    const data = r.data;
+    if (data && typeof data === "object") {
+      data.credit = "@Boss_Hcrr";
+      data.developer = "@Boss_Hcrr";
+    }
+    return res.json(data);
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: "TG Num API error: " + err.message, ...CREDIT });
+  }
+});
+
+// ─── PUBLIC API: AADHAR ADV (V2) ─────────────────────────────────────────────
+app.get("/aadharv2", async (req, res) => {
+  const { aadhar, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!aadhar) return res.status(400).json({ error: "aadhar required (12 digits)", ...CREDIT });
+  if (!key)    return res.status(401).json({ error: "API key required", ...CREDIT });
+  if (!/^\d{12}$/.test(aadhar)) return res.status(400).json({ error: "Aadhar must be 12 digits", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "aadharv2");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  try {
+    const baseUrl = process.env.UPSTREAM_AADHAR_V2_URL;
+    if (!baseUrl) return res.status(503).json({ error: "Aadhar V2 API not configured", ...CREDIT });
+    const r = await axios.get(baseUrl, {
+      params: { aadhar },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    const data = r.data;
+    if (data && typeof data === "object") {
+      data.credit = "@Boss_Hcrr";
+      data.developer = "@Boss_Hcrr";
+    }
+    return res.json(data);
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: "Aadhar V2 API error: " + err.message, ...CREDIT });
   }
 });
 
