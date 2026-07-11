@@ -19,19 +19,19 @@ app.use(express.static(path.join(__dirname, "public")));
 const CREDIT = { credit: "@Boss_Hcrr", developer: "@Boss_Hcrr" };
 
 const API_REGISTRY = [
-  { type: "number",   label: "Number Info",   prefix: "num_",  route: "/lookup",   paramName: "number", icon: "📞", envKey: "UPSTREAM_API_URL" },
-  { type: "telegram", label: "Telegram Info", prefix: "tg_",   route: "/tg",       paramName: "userid", icon: "✈️",  envKey: "UPSTREAM_TG_API_URL" },
-  { type: "upi",      label: "UPI Info",      prefix: "upi_",  route: "/upi",      paramName: "upi",    icon: "💳", envKey: "UPSTREAM_UPI_API_URL" },
-  { type: "imei",     label: "IMEI Info",     prefix: "imei_", route: "/imei",     paramName: "imei",   icon: "📱", envKey: "UPSTREAM_IMEI_API_URL" },
-  { type: "aadhar",   label: "Aadhar Info",   prefix: "aad_",  route: "/aadhar",   paramName: "aadhar", icon: "🆔", envKey: "UPSTREAM_AADHAR_API_URL" },
-  { type: "pan",      label: "PAN Info",      prefix: "pan_",  route: "/pan",      paramName: "pan",    icon: "🪪", envKey: "UPSTREAM_PAN_API_URL" },
-  { type: "rto",      label: "RTO Info",      prefix: "rto_",  route: "/rto",      paramName: "rc",     icon: "🚗", envKey: "UPSTREAM_RTO_API_URL" },
-  { type: "ip",       label: "IP Lookup",     prefix: "ip_",   route: "/iplookup", paramName: "ip",     icon: "🌐", envKey: "UPSTREAM_IP_API_URL" },
-  { type: "gst",      label: "GST Info",      prefix: "gst_",  route: "/gst",      paramName: "gstin",  icon: "🏢", envKey: "UPSTREAM_GST_API_URL" },
-  { type: "pan2gst",  label: "PAN to GST",    prefix: "p2g_",  route: "/pan2gst",  paramName: "pan",    icon: "🔎", envKey: "UPSTREAM_PAN_GST_API_URL" },
-  { type: "osint",    label: "Number Adv",    prefix: "osin_", route: "/osint",    paramName: "query",  icon: "🔍", envKey: "OSINT_API_URL" },
-  { type: "tgnum",    label: "TG to Number",  prefix: "tgn_",  route: "/tgnum",    paramName: "tgusername", icon: "📲", envKey: "UPSTREAM_TG_NUM_URL" },
-  { type: "aadharv2", label: "Aadhar Adv",    prefix: "aadv_", route: "/aadharv2", paramName: "aadhar", icon: "🆔", envKey: "UPSTREAM_AADHAR_V2_URL" },
+  { type: "number",   label: "Number Info",    prefix: "num_",  route: "/lookup",   paramName: "number",     icon: "📞", envKey: "UPSTREAM_API_URL" },
+  { type: "osint",    label: "Number Adv",     prefix: "osin_", route: "/osint",    paramName: "query",      icon: "🔍", envKey: "OSINT_API_URL" },
+  { type: "vehicle",  label: "Vehicle Info",   prefix: "veh_",  route: "/vehicle",  paramName: "number",     icon: "🚗", envKey: "UPSTREAM_VEHICLE_URL" },
+  { type: "tgnum",    label: "TG to Number",   prefix: "tgn_",  route: "/tgnum",    paramName: "tgusername", icon: "📲", envKey: "UPSTREAM_TG_NUM_URL" },
+  { type: "upi",      label: "UPI Info",       prefix: "upi_",  route: "/upi",      paramName: "upi",        icon: "💳", envKey: "UPSTREAM_UPI_API_URL" },
+  { type: "imei",     label: "IMEI Info",      prefix: "imei_", route: "/imei",     paramName: "imei",       icon: "📱", envKey: "UPSTREAM_IMEI_API_URL" },
+  { type: "aadhar",   label: "Aadhar Info",    prefix: "aad_",  route: "/aadhar",   paramName: "aadhar",     icon: "🆔", envKey: "UPSTREAM_AADHAR_V2_URL" },
+  { type: "pan",      label: "PAN Info",       prefix: "pan_",  route: "/pan",      paramName: "pan",        icon: "🪪", envKey: "UPSTREAM_PAN_API_URL" },
+  { type: "email",    label: "Email Info",     prefix: "eml_",  route: "/email",    paramName: "email",      icon: "📧", envKey: "UPSTREAM_EMAIL_URL" },
+  { type: "ip",       label: "IP Lookup",      prefix: "ip_",   route: "/iplookup", paramName: "ip",         icon: "🌐", envKey: "UPSTREAM_IP_API_URL" },
+  { type: "gst",      label: "GST Info",       prefix: "gst_",  route: "/gst",      paramName: "gstin",      icon: "🏢", envKey: "UPSTREAM_GST_API_URL" },
+  { type: "pan2gst",  label: "PAN to GST",     prefix: "p2g_",  route: "/pan2gst",  paramName: "pan",        icon: "🔎", envKey: "UPSTREAM_PAN_GST_API_URL" },
+  { type: "ai",       label: "AI Chat",        prefix: "ai_",   route: "/ai",       paramName: "msg",        icon: "🤖", envKey: "UPSTREAM_AI_URL" },
 ];
 
 const AdminSchema = new mongoose.Schema({
@@ -100,14 +100,12 @@ async function cleanSessions() {
   await Session.deleteMany({ expiresAt: { $lt: new Date() } });
 }
 
-// ─── AUTH MIDDLEWARE ── FIXED: strict token validation ───────────────────────
 async function authMiddleware(req, res, next) {
   const token = req.cookies?.token || req.headers?.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Unauthorized - No token" });
   if (!process.env.JWT_SECRET) return res.status(500).json({ error: "Server misconfigured" });
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Verify session exists in DB
     const session = await Session.findOne({ sessionId: decoded.sessionId });
     if (!session) return res.status(401).json({ error: "Session expired or invalid" });
     if (session.expiresAt < new Date()) {
@@ -150,7 +148,7 @@ async function incUsage(keyId) {
   await ApiKey.findByIdAndUpdate(keyId, { $inc: { usageCount: 1, dailyUsed: 1 }, lastUsedAt: new Date() });
 }
 
-// ─── HTML ROUTES ── FIXED: proper login bypass protection ────────────────────
+// ─── HTML ROUTES ──────────────────────────────────────────────────────────────
 app.get("/admin", (req, res) => {
   const token = req.cookies?.token;
   if (token && process.env.JWT_SECRET) {
@@ -159,10 +157,7 @@ app.get("/admin", (req, res) => {
       if (user && user.username) {
         return res.redirect(isSuperAdmin(user.username) ? "/admin/dashboard" : "/admin/panel");
       }
-    } catch (e) {
-      // Invalid token — clear it and show login
-      res.clearCookie("token");
-    }
+    } catch (e) { res.clearCookie("token"); }
   }
   res.sendFile(path.join(__dirname, "public", "login.html"));
 });
@@ -176,11 +171,10 @@ app.get("/admin/panel", authMiddleware, (req, res) => {
   res.sendFile(path.join(__dirname, "public", "admin.html"));
 });
 
-// ─── AUTH ROUTES ──────────────────────────────────────────────────────────────
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
 app.post("/admin/login", async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: "Missing credentials" });
-
   if (isSuperAdmin(username)) {
     if (password !== process.env.SUPER_ADMIN_PASSWORD)
       return res.status(401).json({ error: "Invalid credentials" });
@@ -189,7 +183,6 @@ app.post("/admin/login", async (req, res) => {
     res.cookie("token", token, { httpOnly: true, sameSite: "lax", maxAge: 8 * 3600 * 1000 });
     return res.json({ success: true, role: "superadmin" });
   }
-
   const admin = await Admin.findOne({ username });
   if (!admin || !(await bcrypt.compare(password, admin.password)))
     return res.status(401).json({ error: "Invalid credentials" });
@@ -213,18 +206,13 @@ app.get("/admin/api/me", authMiddleware, async (req, res) => {
 });
 
 app.get("/admin/api/config", authMiddleware, (req, res) => {
-  res.json({
-    apiTypes: API_REGISTRY.map(a => ({
-      type: a.type, label: a.label, icon: a.icon, route: a.route, paramName: a.paramName, prefix: a.prefix
-    }))
-  });
+  res.json({ apiTypes: API_REGISTRY.map(a => ({ type: a.type, label: a.label, icon: a.icon, route: a.route, paramName: a.paramName, prefix: a.prefix })) });
 });
 
 app.get("/admin/api/stats", authMiddleware, superOnly, async (req, res) => {
   await cleanSessions();
   const [totalAdmins, totalKeys, activeKeys, totalSessions] = await Promise.all([
-    Admin.countDocuments(),
-    ApiKey.countDocuments(),
+    Admin.countDocuments(), ApiKey.countDocuments(),
     ApiKey.countDocuments({ isActive: true, expiresAt: { $gt: new Date() } }),
     Session.countDocuments(),
   ]);
@@ -233,26 +221,21 @@ app.get("/admin/api/stats", authMiddleware, superOnly, async (req, res) => {
 
 app.get("/admin/api/sessions/me", authMiddleware, async (req, res) => {
   await cleanSessions();
-  const sessions = await Session.find({ username: req.user.username }).sort({ lastSeen: -1 }).lean();
-  res.json({ sessions });
+  res.json({ sessions: await Session.find({ username: req.user.username }).sort({ lastSeen: -1 }).lean() });
 });
 
 app.get("/admin/api/sessions/all", authMiddleware, superOnly, async (req, res) => {
   await cleanSessions();
   const sessions = await Session.find().sort({ username: 1, lastSeen: -1 }).lean();
   const byUser = {};
-  for (const s of sessions) {
-    if (!byUser[s.username]) byUser[s.username] = [];
-    byUser[s.username].push(s);
-  }
+  for (const s of sessions) { if (!byUser[s.username]) byUser[s.username] = []; byUser[s.username].push(s); }
   res.json({ byUser, total: sessions.length });
 });
 
 app.delete("/admin/api/sessions/:id", authMiddleware, async (req, res) => {
   const s = await Session.findById(req.params.id);
   if (!s) return res.status(404).json({ error: "Not found" });
-  if (!isSuperAdmin(req.user.username) && s.username !== req.user.username)
-    return res.status(403).json({ error: "Forbidden" });
+  if (!isSuperAdmin(req.user.username) && s.username !== req.user.username) return res.status(403).json({ error: "Forbidden" });
   await Session.findByIdAndDelete(req.params.id);
   res.json({ message: "Session revoked" });
 });
@@ -293,28 +276,26 @@ app.delete("/admin/api/admins/:username", authMiddleware, superOnly, async (req,
 });
 
 app.get("/admin/api/my-keys", authMiddleware, async (req, res) => {
-  const keys = await ApiKey.find({ createdBy: req.user.username }).sort({ createdAt: -1 }).lean();
-  res.json({ keys });
+  res.json({ keys: await ApiKey.find({ createdBy: req.user.username }).sort({ createdAt: -1 }).lean() });
 });
 
 app.post("/admin/api/my-keys", authMiddleware, async (req, res) => {
   const { label, days = 7, usageLimit = 0, dailyLimit = 0, keyType = "number" } = req.body;
-  if (!API_REGISTRY.find(a => a.type === keyType))
-    return res.status(400).json({ error: "Invalid key type" });
+  if (!API_REGISTRY.find(a => a.type === keyType)) return res.status(400).json({ error: "Invalid key type" });
   if (!isSuperAdmin(req.user.username)) {
     const admin = await Admin.findOne({ username: req.user.username });
     const allowed = admin?.allowedTypes || ["all"];
     if (!allowed.includes("all") && !allowed.includes(keyType))
       return res.status(403).json({ error: `No access to ${keyType} keys` });
   }
-  const expiresAt = new Date(Date.now() + days * 24 * 3600 * 1000);
   const key = makeKey(keyType);
   await ApiKey.create({
-    key, label: label || "", createdBy: req.user.username, expiresAt, keyType,
+    key, label: label || "", createdBy: req.user.username,
+    expiresAt: new Date(Date.now() + days * 24 * 3600 * 1000), keyType,
     usageLimit: usageLimit > 0 ? usageLimit : null,
     dailyLimit: dailyLimit > 0 ? dailyLimit : null,
   });
-  res.status(201).json({ key, expiresAt, message: "Key created" });
+  res.status(201).json({ key, message: "Key created" });
 });
 
 app.delete("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
@@ -326,8 +307,7 @@ app.delete("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
 });
 
 app.get("/admin/api/all-keys", authMiddleware, superOnly, async (req, res) => {
-  const keys = await ApiKey.find().sort({ createdAt: -1 }).lean();
-  res.json({ keys });
+  res.json({ keys: await ApiKey.find().sort({ createdAt: -1 }).lean() });
 });
 
 app.delete("/admin/api/all-keys/:id", authMiddleware, superOnly, async (req, res) => {
@@ -336,65 +316,102 @@ app.delete("/admin/api/all-keys/:id", authMiddleware, superOnly, async (req, res
   res.json({ message: "Key deleted" });
 });
 
-// ─── PUBLIC API: NUMBER LOOKUP ── FIXED: UPSTREAM_API_URL ────────────────────
+// ─── HELPER: generic upstream call ────────────────────────────────────────────
+async function callUpstream(url, params, headers) {
+  const r = await axios.get(url, {
+    params, timeout: 15000,
+    headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json", ...headers }
+  });
+  return r.data;
+}
+
+function addCredit(data) {
+  if (data && typeof data === "object") {
+    data.credit = "@Boss_Hcrr";
+    data.developer = "@Boss_Hcrr";
+  }
+  return data;
+}
+
+// ─── PUBLIC APIs ──────────────────────────────────────────────────────────────
+
+// 1. NUMBER INFO
 app.get("/lookup", async (req, res) => {
   const { number, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
-
-  if (!number) return res.status(400).json({ error: "number param required", ...CREDIT });
+  if (!number) return res.status(400).json({ error: "number required", ...CREDIT });
   if (!key)    return res.status(401).json({ error: "API key required", ...CREDIT });
-
   const { error, status, keyDoc } = await validateKey(key, "number");
   if (error) return res.status(status).json({ error, ...CREDIT });
-
-  const baseUrl = process.env.UPSTREAM_API_URL;
-  if (!baseUrl) return res.status(503).json({ error: "Number API not configured", ...CREDIT });
-
+  if (!process.env.UPSTREAM_API_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    const upstreamUrl = `${baseUrl}?number=${encodeURIComponent(number)}`;
-    const response = await axios.get(upstreamUrl, {
-      timeout: 15000,
-      headers: {
-        "ngrok-skip-browser-warning": "true",
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json"
-      }
-    });
+    const data = await callUpstream(`${process.env.UPSTREAM_API_URL}?number=${encodeURIComponent(number)}`, {}, { "ngrok-skip-browser-warning": "true" });
     await incUsage(keyDoc._id);
-    const data = response.data;
-    if (data && typeof data === "object") {
-      if (data.data && typeof data.data === "object") {
-        data.data.credit = "@Boss_Hcrr";
-        data.data.developer = "@Boss_Hcrr";
-      }
-      data.credit = "@Boss_Hcrr";
-      data.developer = "@Boss_Hcrr";
-    }
-    return res.json(data);
+    return res.json(addCredit(data));
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "Upstream API error: " + err.message, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
-app.get("/tg", async (req, res) => {
-  const { userid, apikey } = req.query;
+// 2. NUMBER ADV (OSINT)
+app.get("/osint", async (req, res) => {
+  const { query, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
-  if (!userid) return res.status(400).json({ error: "userid required", ...CREDIT });
-  if (!key)    return res.status(401).json({ error: "API key required", ...CREDIT });
-  const { error, status, keyDoc } = await validateKey(key, "telegram");
+  if (!query) return res.status(400).json({ error: "query required", ...CREDIT });
+  if (!key)   return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "osint");
   if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.OSINT_API_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    if (!process.env.UPSTREAM_TG_API_URL) return res.status(503).json({ error: "Telegram API not configured", ...CREDIT });
-    const r = await axios.get(`${process.env.UPSTREAM_TG_API_URL}?type=sms&term=${encodeURIComponent(userid)}`, { timeout: 10000 });
+    const data = await callUpstream(process.env.OSINT_API_URL, { key: process.env.OSINT_API_KEY, query });
     await incUsage(keyDoc._id);
-    return res.json({ ...r.data, ...CREDIT });
+    return res.json(addCredit(data));
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "Telegram API error", ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
+// 3. VEHICLE INFO
+app.get("/vehicle", async (req, res) => {
+  const { number, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!number) return res.status(400).json({ error: "number required (e.g. RJ14CV0002)", ...CREDIT });
+  if (!key)    return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "vehicle");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_VEHICLE_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const data = await callUpstream(`${process.env.UPSTREAM_VEHICLE_URL}?number=${encodeURIComponent(number)}`);
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+
+// 4. TG TO NUMBER
+app.get("/tgnum", async (req, res) => {
+  const { tgusername, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!tgusername) return res.status(400).json({ error: "tgusername required (e.g. @username)", ...CREDIT });
+  if (!key)        return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "tgnum");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_TG_NUM_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { tgusername });
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+
+// 5. UPI INFO
 app.get("/upi", async (req, res) => {
   const { upi, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -405,20 +422,21 @@ app.get("/upi", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   try {
     if (process.env.UPSTREAM_UPI_API_URL) {
-      const r = await axios.get(`${process.env.UPSTREAM_UPI_API_URL}?upi=${encodeURIComponent(upi)}`, { timeout: 10000 });
+      const data = await callUpstream(`${process.env.UPSTREAM_UPI_API_URL}?upi=${encodeURIComponent(upi)}`);
       await incUsage(keyDoc._id);
-      return res.json({ ...r.data, ...CREDIT });
+      return res.json(addCredit(data));
     }
-    const [prefix, handle] = upi.split("@");
+    const [, handle] = upi.split("@");
     const banks = { okhdfcbank:"HDFC Bank", okicici:"ICICI Bank", oksbi:"SBI", ybl:"Yes Bank", apl:"Axis Bank", paytm:"Paytm", fam:"PhonePe", gpay:"Google Pay", airtel:"Airtel Payments Bank" };
     await incUsage(keyDoc._id);
     return res.json({ success: true, upi_id: upi, valid: true, handle, bank: banks[handle.toLowerCase()] || "Unknown", ...CREDIT });
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "UPI API error", ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
+// 6. IMEI INFO
 app.get("/imei", async (req, res) => {
   const { imei, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -427,17 +445,18 @@ app.get("/imei", async (req, res) => {
   if (!/^\d{15}$/.test(imei)) return res.status(400).json({ error: "IMEI must be 15 digits", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "imei");
   if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_IMEI_API_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    if (!process.env.UPSTREAM_IMEI_API_URL) return res.status(503).json({ error: "IMEI API not configured", ...CREDIT });
-    const r = await axios.get(`${process.env.UPSTREAM_IMEI_API_URL}/?imei_num=${encodeURIComponent(imei)}`, { timeout: 15000 });
+    const data = await callUpstream(`${process.env.UPSTREAM_IMEI_API_URL}/?imei_num=${encodeURIComponent(imei)}`);
     await incUsage(keyDoc._id);
-    return res.json({ ...r.data, ...CREDIT });
+    return res.json(addCredit(data));
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "IMEI API error", ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
+// 7. AADHAR INFO
 app.get("/aadhar", async (req, res) => {
   const { aadhar, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -446,54 +465,61 @@ app.get("/aadhar", async (req, res) => {
   if (!/^\d{12}$/.test(aadhar)) return res.status(400).json({ error: "Aadhar must be 12 digits", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "aadhar");
   if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_AADHAR_V2_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    if (!process.env.UPSTREAM_AADHAR_API_URL) return res.status(503).json({ error: "Aadhar API not configured", ...CREDIT });
-    const r = await axios.get(`${process.env.UPSTREAM_AADHAR_API_URL}?num=${encodeURIComponent(aadhar)}`, { timeout: 15000 });
+    const data = await callUpstream(process.env.UPSTREAM_AADHAR_V2_URL, { aadhar });
     await incUsage(keyDoc._id);
-    return res.json({ ...r.data, ...CREDIT });
+    return res.json(addCredit(data));
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "Aadhar API error", ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
+// 8. PAN INFO
 app.get("/pan", async (req, res) => {
   const { pan, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
   if (!pan) return res.status(400).json({ error: "pan required", ...CREDIT });
   if (!key) return res.status(401).json({ error: "API key required", ...CREDIT });
-  if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(pan.toUpperCase())) return res.status(400).json({ error: "Invalid PAN format (e.g. ABCDE1234F)", ...CREDIT });
+  if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(pan)) return res.status(400).json({ error: "Invalid PAN (e.g. ABCDE1234F)", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "pan");
   if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_PAN_API_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    if (!process.env.UPSTREAM_PAN_API_URL) return res.status(503).json({ error: "PAN API not configured", ...CREDIT });
-    const r = await axios.get(`${process.env.UPSTREAM_PAN_API_URL}?pan=${encodeURIComponent(pan.toUpperCase())}`, { timeout: 15000 });
+    const data = await callUpstream(`${process.env.UPSTREAM_PAN_API_URL}?pan=${encodeURIComponent(pan.toUpperCase())}`);
     await incUsage(keyDoc._id);
-    return res.json({ ...r.data, ...CREDIT });
+    return res.json(addCredit(data));
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "PAN API error", ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
-app.get("/rto", async (req, res) => {
-  const { rc, apikey } = req.query;
+// 9. EMAIL INFO
+app.get("/email", async (req, res) => {
+  const { email, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
-  if (!rc)  return res.status(400).json({ error: "rc required", ...CREDIT });
-  if (!key) return res.status(401).json({ error: "API key required", ...CREDIT });
-  const { error, status, keyDoc } = await validateKey(key, "rto");
+  if (!email) return res.status(400).json({ error: "email required", ...CREDIT });
+  if (!key)   return res.status(401).json({ error: "API key required", ...CREDIT });
+  if (!email.includes("@")) return res.status(400).json({ error: "Invalid email format", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "email");
   if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_EMAIL_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    if (!process.env.UPSTREAM_RTO_API_URL) return res.status(503).json({ error: "RTO API not configured", ...CREDIT });
-    const r = await axios.get(`${process.env.UPSTREAM_RTO_API_URL}?rc=${encodeURIComponent(rc)}`, { timeout: 10000 });
+    const data = await callUpstream(process.env.UPSTREAM_EMAIL_URL, {
+      key: process.env.EMAIL_API_KEY,
+      email
+    });
     await incUsage(keyDoc._id);
-    return res.json({ ...r.data, ...CREDIT });
+    return res.json(addCredit(data));
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "RTO API error", ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
+// 10. IP LOOKUP
 app.get("/iplookup", async (req, res) => {
   const { ip, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -502,14 +528,17 @@ app.get("/iplookup", async (req, res) => {
   const { error, status, keyDoc } = await validateKey(key, "ip");
   if (error) return res.status(status).json({ error, ...CREDIT });
   try {
-    const r = await axios.get(`http://ip-api.com/json/${encodeURIComponent(targetIp)}?fields=status,message,country,regionName,city,zip,lat,lon,isp,org,as,query`, { timeout: 10000 });
+    const data = await callUpstream(`http://ip-api.com/json/${encodeURIComponent(targetIp)}`, {
+      fields: "status,message,country,regionName,city,zip,lat,lon,isp,org,as,query"
+    });
     await incUsage(keyDoc._id);
-    return res.json({ ...r.data, ...CREDIT });
+    return res.json(addCredit(data));
   } catch (err) {
-    return res.status(500).json({ error: "IP API error", ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
+// 11. GST INFO
 app.get("/gst", async (req, res) => {
   const { gstin, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -517,140 +546,72 @@ app.get("/gst", async (req, res) => {
   if (!key)   return res.status(401).json({ error: "API key required", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "gst");
   if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_GST_API_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    if (!process.env.UPSTREAM_GST_API_URL) return res.status(503).json({ error: "GST API not configured", ...CREDIT });
-    const r = await axios.get(`${process.env.UPSTREAM_GST_API_URL}?gstin=${encodeURIComponent(gstin)}`, {
-      timeout: 10000,
-      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
-    });
+    const data = await callUpstream(`${process.env.UPSTREAM_GST_API_URL}?gstin=${encodeURIComponent(gstin)}`);
     await incUsage(keyDoc._id);
-    return res.json({ ...r.data, ...CREDIT });
+    return res.json(addCredit(data));
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "GST API error", ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
-// ─── PUBLIC API: PAN TO GST ───────────────────────────────────────────────────
+// 12. PAN TO GST
 app.get("/pan2gst", async (req, res) => {
   const { pan, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
-  if (!pan) return res.status(400).json({ error: "pan required (e.g. AAYFK4129N)", ...CREDIT });
+  if (!pan) return res.status(400).json({ error: "pan required", ...CREDIT });
   if (!key) return res.status(401).json({ error: "API key required", ...CREDIT });
   if (!/^[A-Z]{5}[0-9]{4}[A-Z]$/i.test(pan)) return res.status(400).json({ error: "Invalid PAN format", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "pan2gst");
   if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_PAN_GST_API_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    if (!process.env.UPSTREAM_PAN_GST_API_URL) return res.status(503).json({ error: "PAN to GST API not configured", ...CREDIT });
-    const r = await axios.get(`${process.env.UPSTREAM_PAN_GST_API_URL}?pan=${encodeURIComponent(pan.toUpperCase())}`, {
-      timeout: 10000,
-      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
-    });
+    const data = await callUpstream(`${process.env.UPSTREAM_PAN_GST_API_URL}?pan=${encodeURIComponent(pan.toUpperCase())}`);
     await incUsage(keyDoc._id);
-    return res.json({ ...r.data, ...CREDIT });
+    return res.json(addCredit(data));
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "PAN to GST API error", ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
-// ─── PUBLIC API: OSINT / NUMBER ADV ──────────────────────────────────────────
-app.get("/osint", async (req, res) => {
-  const { query, apikey } = req.query;
+// 13. AI CHAT
+app.get("/ai", async (req, res) => {
+  const { msg, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
-  if (!query) return res.status(400).json({ error: "query required (phone number)", ...CREDIT });
-  if (!key)   return res.status(401).json({ error: "API key required", ...CREDIT });
-  const { error, status, keyDoc } = await validateKey(key, "osint");
+  if (!msg) return res.status(400).json({ error: "msg required", ...CREDIT });
+  if (!key) return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "ai");
   if (error) return res.status(status).json({ error, ...CREDIT });
-  try {
-    const baseUrl = process.env.OSINT_API_URL;
-    const osintKey = process.env.OSINT_API_KEY;
-    if (!baseUrl) return res.status(503).json({ error: "OSINT API not configured", ...CREDIT });
-    const r = await axios.get(baseUrl, {
-      params: { key: osintKey, query: query },
-      timeout: 15000,
-      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
-    });
-    await incUsage(keyDoc._id);
-    const data = r.data;
-    if (data && typeof data === "object") {
-      data.credit = "@Boss_Hcrr";
-      data.developer = "@Boss_Hcrr";
+  const aiApis = [
+    { url: "https://api-llama3.vercel.app/", param: "msg" },
+    { url: "https://api-chatgpt4.eternalowner06.workers.dev/", param: "prompt" },
+    { url: "https://api-rebix.vercel.app/api/deepseek-v3", param: "q" },
+  ];
+  for (const aiApi of aiApis) {
+    try {
+      const params = {};
+      params[aiApi.param] = msg;
+      const data = await callUpstream(aiApi.url, params);
+      await incUsage(keyDoc._id);
+      return res.json(addCredit(data));
+    } catch (err) {
+      continue; // try next AI
     }
-    return res.json(data);
-  } catch (err) {
-    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "OSINT API error: " + err.message, ...CREDIT });
   }
+  return res.status(500).json({ error: "All AI APIs failed", ...CREDIT });
 });
 
-// ─── PUBLIC API: TG TO NUMBER ────────────────────────────────────────────────
-app.get("/tgnum", async (req, res) => {
-  const { tgusername, apikey } = req.query;
-  const key = req.headers["x-api-key"] || apikey;
-  if (!tgusername) return res.status(400).json({ error: "tgusername required (e.g. @username)", ...CREDIT });
-  if (!key)        return res.status(401).json({ error: "API key required", ...CREDIT });
-  const { error, status, keyDoc } = await validateKey(key, "tgnum");
-  if (error) return res.status(status).json({ error, ...CREDIT });
-  try {
-    const baseUrl = process.env.UPSTREAM_TG_NUM_URL;
-    if (!baseUrl) return res.status(503).json({ error: "TG Num API not configured", ...CREDIT });
-    const r = await axios.get(baseUrl, {
-      params: { tgusername },
-      timeout: 15000,
-      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
-    });
-    await incUsage(keyDoc._id);
-    const data = r.data;
-    if (data && typeof data === "object") {
-      data.credit = "@Boss_Hcrr";
-      data.developer = "@Boss_Hcrr";
-    }
-    return res.json(data);
-  } catch (err) {
-    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "TG Num API error: " + err.message, ...CREDIT });
-  }
-});
-
-// ─── PUBLIC API: AADHAR ADV (V2) ─────────────────────────────────────────────
-app.get("/aadharv2", async (req, res) => {
-  const { aadhar, apikey } = req.query;
-  const key = req.headers["x-api-key"] || apikey;
-  if (!aadhar) return res.status(400).json({ error: "aadhar required (12 digits)", ...CREDIT });
-  if (!key)    return res.status(401).json({ error: "API key required", ...CREDIT });
-  if (!/^\d{12}$/.test(aadhar)) return res.status(400).json({ error: "Aadhar must be 12 digits", ...CREDIT });
-  const { error, status, keyDoc } = await validateKey(key, "aadharv2");
-  if (error) return res.status(status).json({ error, ...CREDIT });
-  try {
-    const baseUrl = process.env.UPSTREAM_AADHAR_V2_URL;
-    if (!baseUrl) return res.status(503).json({ error: "Aadhar V2 API not configured", ...CREDIT });
-    const r = await axios.get(baseUrl, {
-      params: { aadhar },
-      timeout: 15000,
-      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
-    });
-    await incUsage(keyDoc._id);
-    const data = r.data;
-    if (data && typeof data === "object") {
-      data.credit = "@Boss_Hcrr";
-      data.developer = "@Boss_Hcrr";
-    }
-    return res.json(data);
-  } catch (err) {
-    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: "Aadhar V2 API error: " + err.message, ...CREDIT });
-  }
-});
-
+// ─── START ────────────────────────────────────────────────────────────────────
 async function start() {
   await mongoose.connect(process.env.MONGODB_URI);
   console.log("MongoDB connected");
   await cleanSessions();
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
-    console.log(`Server: http://localhost:${PORT}`);
-    console.log(`Admin:  http://localhost:${PORT}/admin`);
+    console.log(`Server: http://localhost:${PORT}/admin`);
     console.log("Credit: @Boss_Hcrr | Developer: @Boss_Hcrr");
   });
 }
