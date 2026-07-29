@@ -394,15 +394,16 @@ app.get("/vehicle", async (req, res) => {
 
 // 4. TG TO NUMBER
 app.get("/tgnum", async (req, res) => {
-  const { tgusername, apikey } = req.query;
+  const { tgusername, q, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
-  if (!tgusername) return res.status(400).json({ error: "tgusername required (e.g. @username)", ...CREDIT });
-  if (!key)        return res.status(401).json({ error: "API key required", ...CREDIT });
+  const query = q || tgusername;
+  if (!query) return res.status(400).json({ error: "tgusername required (e.g. @AnkitXlive)", ...CREDIT });
+  if (!key)   return res.status(401).json({ error: "API key required", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "tgnum");
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_TG_NUM_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { tgusername });
+    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { q: query });
     await incUsage(keyDoc._id);
     return res.json(addCredit(data));
   } catch (err) {
