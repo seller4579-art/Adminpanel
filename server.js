@@ -383,11 +383,26 @@ app.get("/vehicle", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_VEHICLE_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    const data = await callUpstream(`${process.env.UPSTREAM_VEHICLE_URL}?number=${encodeURIComponent(number)}`);
+    const r = await axios.get(process.env.UPSTREAM_VEHICLE_URL, {
+      params: { rc: number },
+      timeout: 15000,
+      responseType: "text",
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "application/json",
+        "Authorization": `Bearer ${process.env.VEHICLE_API_KEY || ""}`,
+        "x-api-key": process.env.VEHICLE_API_KEY || "",
+      },
+    });
+    let text = typeof r.data === "string" ? r.data.trim() : JSON.stringify(r.data);
+    if (text.startsWith("<")) {
+      return res.status(502).json({ error: "Vehicle API returned HTML — check UPSTREAM_VEHICLE_URL", ...CREDIT });
+    }
+    const data = JSON.parse(text);
     await incUsage(keyDoc._id);
     return res.json(addCredit(data));
   } catch (err) {
-    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    if (err.response) return res.status(err.response.status).json({ error: err.message, ...CREDIT });
     return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
@@ -403,7 +418,13 @@ app.get("/tgnum", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_TG_NUM_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { q: query });
+    let data;
+    try {
+      data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { q: query });
+    } catch (primaryErr) {
+      if (!process.env.UPSTREAM_TG_NUM_URL_2) throw primaryErr;
+      data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL_2, { tgusername: query });
+    }
     await incUsage(keyDoc._id);
     return res.json(addCredit(data));
   } catch (err) {
