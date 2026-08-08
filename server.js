@@ -345,7 +345,7 @@ app.get("/lookup", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_API_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    const data = await callUpstream(`${process.env.UPSTREAM_API_URL}?number=${encodeURIComponent(number)}`, {}, { "ngrok-skip-browser-warning": "true" });
+    const data = await callUpstream(process.env.UPSTREAM_API_URL, { mobile: number }, { "ngrok-skip-browser-warning": "true" });
     await incUsage(keyDoc._id);
     return res.json(addCredit(data));
   } catch (err) {
@@ -383,15 +383,17 @@ app.get("/vehicle", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_VEHICLE_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
+    const vehicleKey = process.env.VEHICLE_API_KEY || "";
     const r = await axios.get(process.env.UPSTREAM_VEHICLE_URL, {
-      params: { rc: number },
+      params: { rc: number, key: vehicleKey, apikey: vehicleKey },
       timeout: 15000,
       responseType: "text",
       headers: {
         "User-Agent": "Mozilla/5.0",
         "Accept": "application/json",
-        "Authorization": `Bearer ${process.env.VEHICLE_API_KEY || ""}`,
-        "x-api-key": process.env.VEHICLE_API_KEY || "",
+        "Authorization": `Bearer ${vehicleKey}`,
+        "x-api-key": vehicleKey,
+        "api-key": vehicleKey,
       },
     });
     let text = typeof r.data === "string" ? r.data.trim() : JSON.stringify(r.data);
