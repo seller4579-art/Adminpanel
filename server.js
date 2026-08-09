@@ -23,6 +23,7 @@ const API_REGISTRY = [
   { type: "osint",    label: "Number Adv",     prefix: "osin_", route: "/osint",    paramName: "query",      icon: "🔍", envKey: "OSINT_API_URL" },
   { type: "vehicle",  label: "Vehicle Info",   prefix: "veh_",  route: "/vehicle",  paramName: "number",     icon: "🚗", envKey: "UPSTREAM_VEHICLE_URL" },
   { type: "tgnum",    label: "TG to Number",   prefix: "tgn_",  route: "/tgnum",    paramName: "tgusername", icon: "📲", envKey: "UPSTREAM_TG_NUM_URL" },
+  { type: "tginfo",   label: "TG Info",        prefix: "tgi_",  route: "/tginfo",   paramName: "username",   icon: "✈️",  envKey: "UPSTREAM_TG_INFO_URL" },
   { type: "upi",      label: "UPI Info",       prefix: "upi_",  route: "/upi",      paramName: "upi",        icon: "💳", envKey: "UPSTREAM_UPI_API_URL" },
   { type: "imei",     label: "IMEI Info",      prefix: "imei_", route: "/imei",     paramName: "imei",       icon: "📱", envKey: "UPSTREAM_IMEI_API_URL" },
   { type: "aadhar",   label: "Aadhar Info",    prefix: "aad_",  route: "/aadhar",   paramName: "aadhar",     icon: "🆔", envKey: "UPSTREAM_AADHAR_V2_URL" },
