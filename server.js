@@ -524,7 +524,12 @@ app.get("/aadhar", async (req, res) => {
   if (!aadhar) return res.status(400).json({ error: "aadhar required", ...CREDIT });
   if (!key)    return res.status(401).json({ error: "API key required", ...CREDIT });
   if (!/^\d{12}$/.test(aadhar)) return res.status(400).json({ error: "Aadhar must be 12 digits", ...CREDIT });
-  const { error, status, keyDoc } = await validateKey(key, "aadhar");
+  let { error, status, keyDoc } = await validateKey(key, "aadhar");
+  // Fallback: accept old aadharv2 keys too
+  if (error) {
+    const fallback = await validateKey(key, "aadharv2");
+    if (!fallback.error) { error = null; status = null; keyDoc = fallback.keyDoc; }
+  }
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_AADHAR_V2_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
