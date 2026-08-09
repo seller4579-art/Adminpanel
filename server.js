@@ -26,7 +26,6 @@ const API_REGISTRY = [
   { type: "upi",      label: "UPI Info",       prefix: "upi_",  route: "/upi",      paramName: "upi",        icon: "💳", envKey: "UPSTREAM_UPI_API_URL" },
   { type: "imei",     label: "IMEI Info",      prefix: "imei_", route: "/imei",     paramName: "imei",       icon: "📱", envKey: "UPSTREAM_IMEI_API_URL" },
   { type: "aadhar",   label: "Aadhar Info",    prefix: "aad_",  route: "/aadhar",   paramName: "aadhar",     icon: "🆔", envKey: "UPSTREAM_AADHAR_V2_URL" },
-  { type: "pan",      label: "PAN Info",       prefix: "pan_",  route: "/pan",      paramName: "pan",        icon: "🪪", envKey: "UPSTREAM_PAN_API_URL" },
   { type: "email",    label: "Email Info",     prefix: "eml_",  route: "/email",    paramName: "email",      icon: "📧", envKey: "UPSTREAM_EMAIL_URL" },
   { type: "ip",       label: "IP Lookup",      prefix: "ip_",   route: "/iplookup", paramName: "ip",         icon: "🌐", envKey: "UPSTREAM_IP_API_URL" },
   { type: "gst",      label: "GST Info",       prefix: "gst_",  route: "/gst",      paramName: "gstin",      icon: "🏢", envKey: "UPSTREAM_GST_API_URL" },
@@ -298,6 +297,27 @@ app.post("/admin/api/my-keys", authMiddleware, async (req, res) => {
   res.status(201).json({ key, message: "Key created" });
 });
 
+// Update key — pause/resume, extend/reduce, custom
+app.patch("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
+  const { addDays, setDays, usageLimit, dailyLimit, isActive, customKey } = req.body;
+  const filter = { _id: req.params.id };
+  if (!isSuperAdmin(req.user.username)) filter.createdBy = req.user.username;
+  const doc = await ApiKey.findOne(filter);
+  if (!doc) return res.status(404).json({ error: "Not found or unauthorized" });
+  const update = {};
+  if (addDays) {
+    const base = doc.expiresAt > new Date() ? doc.expiresAt : new Date();
+    update.expiresAt = new Date(base.getTime() + parseInt(addDays) * 24 * 3600 * 1000);
+  }
+  if (setDays) update.expiresAt = new Date(Date.now() + parseInt(setDays) * 24 * 3600 * 1000);
+  if (usageLimit !== undefined) update.usageLimit = parseInt(usageLimit) > 0 ? parseInt(usageLimit) : null;
+  if (dailyLimit !== undefined) update.dailyLimit = parseInt(dailyLimit) > 0 ? parseInt(dailyLimit) : null;
+  if (isActive !== undefined) update.isActive = Boolean(isActive);
+  if (customKey && isSuperAdmin(req.user.username)) update.key = customKey;
+  const updated = await ApiKey.findByIdAndUpdate(doc._id, update, { new: true });
+  res.json({ message: "Key updated", key: updated });
+});
+
 app.delete("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
   const filter = { _id: req.params.id };
   if (!isSuperAdmin(req.user.username)) filter.createdBy = req.user.username;
@@ -308,6 +328,24 @@ app.delete("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
 
 app.get("/admin/api/all-keys", authMiddleware, superOnly, async (req, res) => {
   res.json({ keys: await ApiKey.find().sort({ createdAt: -1 }).lean() });
+});
+
+app.patch("/admin/api/all-keys/:id", authMiddleware, superOnly, async (req, res) => {
+  const { addDays, setDays, usageLimit, dailyLimit, isActive, customKey } = req.body;
+  const doc = await ApiKey.findById(req.params.id);
+  if (!doc) return res.status(404).json({ error: "Not found" });
+  const update = {};
+  if (addDays) {
+    const base = doc.expiresAt > new Date() ? doc.expiresAt : new Date();
+    update.expiresAt = new Date(base.getTime() + parseInt(addDays) * 24 * 3600 * 1000);
+  }
+  if (setDays) update.expiresAt = new Date(Date.now() + parseInt(setDays) * 24 * 3600 * 1000);
+  if (usageLimit !== undefined) update.usageLimit = parseInt(usageLimit) > 0 ? parseInt(usageLimit) : null;
+  if (dailyLimit !== undefined) update.dailyLimit = parseInt(dailyLimit) > 0 ? parseInt(dailyLimit) : null;
+  if (isActive !== undefined) update.isActive = Boolean(isActive);
+  if (customKey) update.key = customKey;
+  const updated = await ApiKey.findByIdAndUpdate(doc._id, update, { new: true });
+  res.json({ message: "Key updated", key: updated });
 });
 
 app.delete("/admin/api/all-keys/:id", authMiddleware, superOnly, async (req, res) => {
@@ -381,32 +419,30 @@ app.get("/vehicle", async (req, res) => {
   if (!key)    return res.status(401).json({ error: "API key required", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "vehicle");
   if (error) return res.status(status).json({ error, ...CREDIT });
-  if (!process.env.UPSTREAM_VEHICLE_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
-  try {
-    const vehicleKey = process.env.VEHICLE_API_KEY || "";
-    const r = await axios.get(process.env.UPSTREAM_VEHICLE_URL, {
-      params: { rc: number, key: vehicleKey, apikey: vehicleKey },
-      timeout: 15000,
-      responseType: "text",
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json",
-        "Authorization": `Bearer ${vehicleKey}`,
-        "x-api-key": vehicleKey,
-        "api-key": vehicleKey,
-      },
-    });
-    let text = typeof r.data === "string" ? r.data.trim() : JSON.stringify(r.data);
-    if (text.startsWith("<")) {
-      return res.status(502).json({ error: "Vehicle API returned HTML — check UPSTREAM_VEHICLE_URL", ...CREDIT });
-    }
-    const data = JSON.parse(text);
-    await incUsage(keyDoc._id);
-    return res.json(addCredit(data));
-  } catch (err) {
-    if (err.response) return res.status(err.response.status).json({ error: err.message, ...CREDIT });
-    return res.status(500).json({ error: err.message, ...CREDIT });
+
+  const vehicleApis = [
+    { url: process.env.UPSTREAM_VEHICLE_URL,   key: process.env.VEHICLE_API_KEY,   keyParam: "key", regParam: "reg" },
+    { url: process.env.UPSTREAM_VEHICLE_URL_2, key: process.env.VEHICLE_API_KEY_2, keyParam: "key", regParam: "rc" },
+  ].filter(a => a.url);
+
+  if (!vehicleApis.length) return res.status(503).json({ error: "Not configured", ...CREDIT });
+
+  for (const api of vehicleApis) {
+    try {
+      const params = { [api.regParam]: number };
+      if (api.key) params[api.keyParam] = api.key;
+      const r = await axios.get(api.url, {
+        params, timeout: 15000, responseType: "text",
+        headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
+      });
+      let text = typeof r.data === "string" ? r.data.trim() : JSON.stringify(r.data);
+      if (text.startsWith("<")) continue;
+      const data = JSON.parse(text);
+      await incUsage(keyDoc._id);
+      return res.json(addCredit(data));
+    } catch (err) { continue; }
   }
+  return res.status(500).json({ error: "All vehicle APIs failed", ...CREDIT });
 });
 
 // 4. TG TO NUMBER
