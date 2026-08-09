@@ -416,7 +416,30 @@ app.get("/osint", async (req, res) => {
 app.get("/vehicle", async (req, res) => {
   const { number, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
-  if (!number) return res.status(400).json({ error: "number required (e.g. RJ14CV0002)", ...CREDIT });
+  if (!number) return res.status(400).json({ error: "number required (e.g. MP16CB6745)", ...CREDIT });
+  if (!key)    return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "vehicle");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_VEHICLE_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const r = await axios.get(process.env.UPSTREAM_VEHICLE_URL, {
+      params: { key: process.env.VEHICLE_API_KEY, reg: number },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    let data = r.data;
+    if (typeof data === "string") {
+      try { data = JSON.parse(data.trim()); } catch {
+        return res.status(502).json({ error: "Vehicle API returned invalid response", ...CREDIT });
+      }
+    }
+    return res.json(addCredit(data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ error: err.message, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
   if (!key)    return res.status(401).json({ error: "API key required", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "vehicle");
   if (error) return res.status(status).json({ error, ...CREDIT });
