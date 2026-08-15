@@ -245,7 +245,7 @@ function go(p){
 async function renderKeys(){
   var opts=visible().map(function(a){return'<option value="'+a.type+'">'+a.icon+' '+a.label+'</option>'}).join('');
   var mc=document.getElementById('mc');
-  mc.innerHTML='<div class="card"><div class="card-hd"><div class="card-ttl">⚡ Generate API Key</div></div>'
+  mc.innerHTML='<div class="card"><div class="card-hd"><div class="card-ttl">⚡️ Generate API Key</div></div>'
     +'<div class="g2">'
     +'<div class="fld"><label>API Type</label><select id="kType">'+opts+'</select></div>'
     +'<div class="fld"><label>Label / Note</label><input type="text" id="kLabel" placeholder="e.g. My Bot"></div>'
@@ -253,8 +253,8 @@ async function renderKeys(){
     +'<div class="fld"><label>Daily Limit (0=∞)</label><input type="number" id="kDaily" value="0" min="0"></div>'
     +'<div class="fld"><label>Total Limit (0=∞)</label><input type="number" id="kLimit" value="0" min="0"></div>'
     +'</div>'
-    +'<button class="btn btn-cyan" onclick="createKey()">⚡ Generate Key</button>'
-    +'<div id="kNew" style="display:none;margin-top:14px"><div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:4px;letter-spacing:.08em;text-transform:uppercase">⚠ Copy now — shown once</div><div class="key-reveal" id="kVal"></div><button class="cp-btn" style="margin-top:8px" onclick="cp(document.getElementById(\'kVal\').textContent.trim())">Copy Key</button></div>'
+    +'<button class="btn btn-cyan" onclick="createKey()">⚡️ Generate Key</button>'
+    +'<div id="kNew" style="display:none;margin-top:14px"><div style="font-family:var(--mono);font-size:.58rem;color:var(--muted);margin-bottom:4px;letter-spacing:.08em;text-transform:uppercase">⚠️ Copy now — shown once</div><div class="key-reveal" id="kVal"></div><button class="cp-btn" style="margin-top:8px" onclick="cp(document.getElementById(\'kVal\').textContent.trim())">Copy Key</button></div>'
     +'<div id="kMsg"></div></div>'
     +'<div class="card"><div class="card-hd"><div class="card-ttl">◆ My Keys</div><button class="btn btn-ghost btn-xs" onclick="loadKeys()">↺ Refresh</button></div>'
     +'<div class="tbl-wrap"><table><thead><tr><th>Key</th><th>Label</th><th>Type</th><th>Expires</th><th>Daily</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody id="kTbl"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody></table></div></div>';
@@ -270,7 +270,7 @@ async function loadKeys(){
     var st=!k.isActive?'<span class="badge b-red">Off</span>':exp?'<span class="badge b-amber">Expired</span>':'<span class="badge b-green">Active</span>';
     var daily=k.dailyLimit?k.dailyUsed+'/'+k.dailyLimit:'∞';
     var total=k.usageLimit?k.usageCount+'/'+k.usageLimit:k.usageCount+'/∞';
-    return'<tr><td style="font-family:var(--mono);font-size:.64rem;color:var(--cyan)">'+k.key.substring(0,14)+'… <button class="cp-btn" onclick="cp(\''+k.key+'\')">copy</button></td><td>'+(k.label||'—')+'</td><td>'+tbadge(k.keyType)+'</td><td style="font-family:var(--mono);font-size:.64rem">'+fdts(k.expiresAt)+'</td><td style="font-family:var(--mono)">'+daily+'</td><td style="font-family:var(--mono)">'+total+'</td><td>'+st+'</td><td><button class="btn btn-red btn-xs" onclick="delKey(\''+k._id+'\')">Del</button></td></tr>';
+    return'<tr><td style="font-family:var(--mono);font-size:.64rem;color:var(--cyan)">'+k.key.substring(0,14)+'… <button class="cp-btn" onclick="cp(\''+k.key+'\')">copy</button></td><td>'+(k.label||'—')+'</td><td>'+tbadge(k.keyType)+'</td><td style="font-family:var(--mono);font-size:.64rem">'+fdts(k.expiresAt)+'</td><td style="font-family:var(--mono)">'+daily+'</td><td style="font-family:var(--mono)">'+total+'</td><td>'+st+'</td><td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-ghost btn-xs" onclick="addDaysKey(\''+k._id+'\')">+Days</button><button class="btn btn-ghost btn-xs" onclick="toggleKey(\''+k._id+'\',\''+(!k.isActive?'true':'false')+'\')">'+(k.isActive?'Pause':'Resume')+'</button><button class="btn btn-red btn-xs" onclick="delKey(\''+k._id+'\')">Del</button></td></tr>';
   }).join('');
 }
 
@@ -319,7 +319,7 @@ function renderTest(){
       +'<div class="fld"><label>'+a.paramName.toUpperCase()+'</label><input type="text" id="tv_'+a.type+'" placeholder="Enter '+a.paramName+'…"></div>'
       +'<div class="fld"><label>API Key</label><input type="text" id="tk_'+a.type+'" placeholder="'+a.prefix+'…"></div>'
       +'</div>'
-      +'<button class="btn btn-cyan btn-xs" onclick="testApi(\''+a.type+'\',\''+a.route+'\',\''+a.paramName+'\')">▶ Run</button>'
+      +'<button class="btn btn-cyan btn-xs" onclick="testApi(\''+a.type+'\',\''+a.route+'\',\''+a.paramName+'\')">▶️ Run</button>'
       +'<pre id="tr_'+a.type+'" style="display:none;margin-top:12px"></pre>'
       +'</div>';
   }).join('');
@@ -350,6 +350,20 @@ function renderDocs(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────
+async function addDaysKey(id){
+  var d=prompt('Kitne din badhane hain? (e.g. 7)');
+  if(!d||isNaN(d))return;
+  var r=await api('/admin/api/my-keys/'+id,{method:'PATCH',body:JSON.stringify({addDays:parseInt(d)})});
+  if(r.s===200){msg('kMsg','✓ '+d+' din badh gaye',true);loadKeys();}
+  else msg('kMsg',r.d.error||'Failed',false);
+}
+
+async function toggleKey(id,active){
+  var r=await api('/admin/api/my-keys/'+id,{method:'PATCH',body:JSON.stringify({isActive:active==='true'})});
+  if(r.s===200){loadKeys();}
+  else msg('kMsg',r.d.error||'Failed',false);
+}
+
 async function init(){
   var m=await api('/admin/api/me');
   if(m.s!==200){window.location.href='/admin';return}
