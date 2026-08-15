@@ -299,6 +299,26 @@ app.post("/admin/api/my-keys", authMiddleware, async (req, res) => {
   res.status(201).json({ key, message: "Key created" });
 });
 
+// Update key — add/set days, pause/resume, change limits
+app.patch("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
+  const { addDays, setDays, usageLimit, dailyLimit, isActive } = req.body;
+  const filter = { _id: req.params.id };
+  if (!isSuperAdmin(req.user.username)) filter.createdBy = req.user.username;
+  const doc = await ApiKey.findOne(filter);
+  if (!doc) return res.status(404).json({ error: "Not found or unauthorized" });
+  const update = {};
+  if (addDays) {
+    const base = doc.expiresAt > new Date() ? doc.expiresAt : new Date();
+    update.expiresAt = new Date(base.getTime() + parseInt(addDays) * 24 * 3600 * 1000);
+  }
+  if (setDays) update.expiresAt = new Date(Date.now() + parseInt(setDays) * 24 * 3600 * 1000);
+  if (usageLimit !== undefined) update.usageLimit = parseInt(usageLimit) > 0 ? parseInt(usageLimit) : null;
+  if (dailyLimit !== undefined) update.dailyLimit = parseInt(dailyLimit) > 0 ? parseInt(dailyLimit) : null;
+  if (isActive !== undefined) update.isActive = isActive === "true" || isActive === true;
+  const updated = await ApiKey.findByIdAndUpdate(doc._id, update, { new: true });
+  res.json({ message: "Key updated", key: updated });
+});
+
 app.delete("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
   const filter = { _id: req.params.id };
   if (!isSuperAdmin(req.user.username)) filter.createdBy = req.user.username;
@@ -309,6 +329,24 @@ app.delete("/admin/api/my-keys/:id", authMiddleware, async (req, res) => {
 
 app.get("/admin/api/all-keys", authMiddleware, superOnly, async (req, res) => {
   res.json({ keys: await ApiKey.find().sort({ createdAt: -1 }).lean() });
+});
+
+// Superadmin update any key
+app.patch("/admin/api/all-keys/:id", authMiddleware, superOnly, async (req, res) => {
+  const { addDays, setDays, usageLimit, dailyLimit, isActive } = req.body;
+  const doc = await ApiKey.findById(req.params.id);
+  if (!doc) return res.status(404).json({ error: "Not found" });
+  const update = {};
+  if (addDays) {
+    const base = doc.expiresAt > new Date() ? doc.expiresAt : new Date();
+    update.expiresAt = new Date(base.getTime() + parseInt(addDays) * 24 * 3600 * 1000);
+  }
+  if (setDays) update.expiresAt = new Date(Date.now() + parseInt(setDays) * 24 * 3600 * 1000);
+  if (usageLimit !== undefined) update.usageLimit = parseInt(usageLimit) > 0 ? parseInt(usageLimit) : null;
+  if (dailyLimit !== undefined) update.dailyLimit = parseInt(dailyLimit) > 0 ? parseInt(dailyLimit) : null;
+  if (isActive !== undefined) update.isActive = isActive === "true" || isActive === true;
+  const updated = await ApiKey.findByIdAndUpdate(doc._id, update, { new: true });
+  res.json({ message: "Key updated", key: updated });
 });
 
 app.delete("/admin/api/all-keys/:id", authMiddleware, superOnly, async (req, res) => {
@@ -418,10 +456,18 @@ app.get("/tginfo", async (req, res) => {
     const r = await axios.get(process.env.UPSTREAM_TG_INFO_URL, {
       params: { key: process.env.TG_INFO_API_KEY, username },
       timeout: 20000,
-      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "https://anon-tg-info.vercel.app/",
+        "Origin": "https://anon-tg-info.vercel.app",
+      }
     });
     await incUsage(keyDoc._id);
-    return res.json(addCredit(r.data));
+    let tgData = r.data;
+    if (typeof tgData === "string") { try { tgData = JSON.parse(tgData); } catch {} }
+    return res.json(addCredit(tgData));
   } catch (err) {
     if (err.code === "ECONNABORTED") return res.status(504).json({ error: "TG Info API timeout", ...CREDIT });
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
