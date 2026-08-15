@@ -23,6 +23,7 @@ const API_REGISTRY = [
   { type: "osint",    label: "Number Adv",     prefix: "osin_", route: "/osint",    paramName: "query",      icon: "🔍", envKey: "OSINT_API_URL" },
   { type: "vehicle",  label: "Vehicle Info",   prefix: "veh_",  route: "/vehicle",  paramName: "number",     icon: "🚗", envKey: "UPSTREAM_VEHICLE_URL" },
   { type: "tgnum",    label: "TG to Number",   prefix: "tgn_",  route: "/tgnum",    paramName: "tgusername", icon: "📲", envKey: "UPSTREAM_TG_NUM_URL" },
+  { type: "tginfo",   label: "TG Info",        prefix: "tgi_",  route: "/tginfo",   paramName: "username",   icon: "✈️",  envKey: "UPSTREAM_TG_INFO_URL" },
   { type: "upi",      label: "UPI Info",       prefix: "upi_",  route: "/upi",      paramName: "upi",        icon: "💳", envKey: "UPSTREAM_UPI_API_URL" },
   { type: "imei",     label: "IMEI Info",      prefix: "imei_", route: "/imei",     paramName: "imei",       icon: "📱", envKey: "UPSTREAM_IMEI_API_URL" },
   { type: "aadhar",   label: "Aadhar Info",    prefix: "aad_",  route: "/aadhar",   paramName: "aadhar",     icon: "🆔", envKey: "UPSTREAM_AADHAR_V2_URL" },
@@ -345,7 +346,7 @@ app.get("/lookup", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_API_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    const data = await callUpstream(process.env.UPSTREAM_API_URL, { mobile: number }, { "ngrok-skip-browser-warning": "true" });
+    const data = await callUpstream(`${process.env.UPSTREAM_API_URL}?number=${encodeURIComponent(number)}`, {}, { "ngrok-skip-browser-warning": "true" });
     await incUsage(keyDoc._id);
     return res.json(addCredit(data));
   } catch (err) {
@@ -366,6 +367,12 @@ app.get("/osint", async (req, res) => {
   try {
     const data = await callUpstream(process.env.OSINT_API_URL, { key: process.env.OSINT_API_KEY, query });
     await incUsage(keyDoc._id);
+    // Remove unwanted fields
+    if (data && typeof data === "object") {
+      delete data.owner;
+      delete data.channel;
+      delete data.rate_limit;
+    }
     return res.json(addCredit(data));
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
@@ -383,50 +390,50 @@ app.get("/vehicle", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_VEHICLE_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    const vehicleKey = process.env.VEHICLE_API_KEY || "";
-    const r = await axios.get(process.env.UPSTREAM_VEHICLE_URL, {
-      params: { rc: number, key: vehicleKey, apikey: vehicleKey },
-      timeout: 15000,
-      responseType: "text",
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "application/json",
-        "Authorization": `Bearer ${vehicleKey}`,
-        "x-api-key": vehicleKey,
-        "api-key": vehicleKey,
-      },
-    });
-    let text = typeof r.data === "string" ? r.data.trim() : JSON.stringify(r.data);
-    if (text.startsWith("<")) {
-      return res.status(502).json({ error: "Vehicle API returned HTML — check UPSTREAM_VEHICLE_URL", ...CREDIT });
-    }
-    const data = JSON.parse(text);
+    const data = await callUpstream(`${process.env.UPSTREAM_VEHICLE_URL}?number=${encodeURIComponent(number)}`);
     await incUsage(keyDoc._id);
     return res.json(addCredit(data));
   } catch (err) {
-    if (err.response) return res.status(err.response.status).json({ error: err.message, ...CREDIT });
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
     return res.status(500).json({ error: err.message, ...CREDIT });
   }
 });
 
 // 4. TG TO NUMBER
 app.get("/tgnum", async (req, res) => {
-  const { tgusername, q, apikey } = req.query;
+  const { tgusername, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
-  const query = q || tgusername;
-  if (!query) return res.status(400).json({ error: "tgusername required (e.g. @AnkitXlive)", ...CREDIT });
-  if (!key)   return res.status(401).json({ error: "API key required", ...CREDIT });
+  if (!tgusername) return res.status(400).json({ error: "tgusername required (e.g. @username)", ...CREDIT });
+
+// TG INFO
+app.get("/tginfo", async (req, res) => {
+  const { username, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!username) return res.status(400).json({ error: "username required (e.g. monk)", ...CREDIT });
+  if (!key)      return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "tginfo");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_TG_INFO_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const r = await axios.get(process.env.UPSTREAM_TG_INFO_URL, {
+      params: { key: process.env.TG_INFO_API_KEY, username },
+      timeout: 20000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(r.data));
+  } catch (err) {
+    if (err.code === "ECONNABORTED") return res.status(504).json({ error: "TG Info API timeout", ...CREDIT });
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+  if (!key)        return res.status(401).json({ error: "API key required", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "tgnum");
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_TG_NUM_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    let data;
-    try {
-      data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { q: query });
-    } catch (primaryErr) {
-      if (!process.env.UPSTREAM_TG_NUM_URL_2) throw primaryErr;
-      data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL_2, { tgusername: query });
-    }
+    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { tgusername });
     await incUsage(keyDoc._id);
     return res.json(addCredit(data));
   } catch (err) {
@@ -445,15 +452,15 @@ app.get("/upi", async (req, res) => {
   const { error, status, keyDoc } = await validateKey(key, "upi");
   if (error) return res.status(status).json({ error, ...CREDIT });
   try {
-    if (process.env.UPSTREAM_UPI_API_URL) {
-      const data = await callUpstream(`${process.env.UPSTREAM_UPI_API_URL}?upi=${encodeURIComponent(upi)}`);
-      await incUsage(keyDoc._id);
-      return res.json(addCredit(data));
-    }
-    const [, handle] = upi.split("@");
-    const banks = { okhdfcbank:"HDFC Bank", okicici:"ICICI Bank", oksbi:"SBI", ybl:"Yes Bank", apl:"Axis Bank", paytm:"Paytm", fam:"PhonePe", gpay:"Google Pay", airtel:"Airtel Payments Bank" };
+    const upiUrl = process.env.UPSTREAM_UPI_URL || process.env.UPSTREAM_UPI_API_URL;
+    if (!upiUrl) return res.status(503).json({ error: "Not configured", ...CREDIT });
+    const r = await axios.get(upiUrl, {
+      params: { key: process.env.UPI_API_KEY, upi },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
     await incUsage(keyDoc._id);
-    return res.json({ success: true, upi_id: upi, valid: true, handle, bank: banks[handle.toLowerCase()] || "Unknown", ...CREDIT });
+    return res.json(addCredit(r.data));
   } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
     return res.status(500).json({ error: err.message, ...CREDIT });
