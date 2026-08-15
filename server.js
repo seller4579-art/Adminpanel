@@ -442,8 +442,21 @@ app.get("/tgnum", async (req, res) => {
   const { tgusername, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
   if (!tgusername) return res.status(400).json({ error: "tgusername required (e.g. @username)", ...CREDIT });
-  
-// TG INFO
+  if (!key)        return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "tgnum");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.UPSTREAM_TG_NUM_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { q: tgusername }); // 👈 fixed: q instead of tgusername
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+
+// 4b. TG INFO (ab ye separate, clean route hai — tgnum ke andar nested nahi)
 app.get("/tginfo", async (req, res) => {
   const { username, apikey } = req.query;
   const key = req.headers["x-api-key"] || apikey;
@@ -470,19 +483,6 @@ app.get("/tginfo", async (req, res) => {
     return res.json(addCredit(tgData));
   } catch (err) {
     if (err.code === "ECONNABORTED") return res.status(504).json({ error: "TG Info API timeout", ...CREDIT });
-    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
-    return res.status(500).json({ error: err.message, ...CREDIT });
-  }
-});
-  if (!key)        return res.status(401).json({ error: "API key required", ...CREDIT });
-  const { error, status, keyDoc } = await validateKey(key, "tgnum");
-  if (error) return res.status(status).json({ error, ...CREDIT });
-  if (!process.env.UPSTREAM_TG_NUM_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
-  try {
-    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { tgusername });
-    await incUsage(keyDoc._id);
-    return res.json(addCredit(data));
-  } catch (err) {
     if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
     return res.status(500).json({ error: err.message, ...CREDIT });
   }
