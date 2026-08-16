@@ -289,7 +289,12 @@ app.post("/admin/api/my-keys", authMiddleware, async (req, res) => {
     if (!allowed.includes("all") && !allowed.includes(keyType))
       return res.status(403).json({ error: `No access to ${keyType} keys` });
   }
-  const key = makeKey(keyType);
+  const { customKey } = req.body;
+  const key = (customKey && customKey.trim()) ? customKey.trim() : makeKey(keyType);
+  if (customKey && customKey.trim()) {
+    const exists = await ApiKey.findOne({ key });
+    if (exists) return res.status(409).json({ error: "Custom key already exists, choose another" });
+  }
   await ApiKey.create({
     key, label: label || "", createdBy: req.user.username,
     expiresAt: new Date(Date.now() + days * 24 * 3600 * 1000), keyType,
