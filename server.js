@@ -667,11 +667,43 @@ app.get("/ai", async (req, res) => {
   if (!key) return res.status(401).json({ error: "API key required", ...CREDIT });
   const { error, status, keyDoc } = await validateKey(key, "ai");
   if (error) return res.status(status).json({ error, ...CREDIT });
+
+  // Try Groq first (most reliable, no IP block)
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const groqRes = await axios.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          model: "llama3-8b-8192",
+          messages: [{ role: "user", content: msg }],
+          max_tokens: 1024,
+        },
+        {
+          timeout: 20000,
+          headers: {
+            "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+            "Content-Type": "application/json",
+          }
+        }
+      );
+      await incUsage(keyDoc._id);
+      const reply = groqRes.data?.choices?.[0]?.message?.content || "";
+      return res.json({ reply, ...CREDIT });
+    } catch (err) {
+      // fallback to other APIs
+    }
+  }
+
+  // Env-based fallback chain
   const aiApis = [
-    { url: "https://api-llama3.vercel.app/", param: "msg" },
-    { url: "https://api-chatgpt4.eternalowner06.workers.dev/", param: "prompt" },
-    { url: "https://api-rebix.vercel.app/api/deepseek-v3", param: "q" },
-  ];
+    process.env.AI_API_1_URL ? { url: process.env.AI_API_1_URL, param: process.env.AI_API_1_PARAM || "msg" } : null,
+    process.env.AI_API_2_URL ? { url: process.env.AI_API_2_URL, param: process.env.AI_API_2_PARAM || "prompt" } : null,
+    process.env.AI_API_3_URL ? { url: process.env.AI_API_3_URL, param: process.env.AI_API_3_PARAM || "text" } : null,
+    process.env.AI_API_4_URL ? { url: process.env.AI_API_4_URL, param: process.env.AI_API_4_PARAM || "q" } : null,
+  ].filter(Boolean);
+
+  if (!aiApis.length) return res.status(503).json({ error: "No AI APIs configured", ...CREDIT });
+
   for (const aiApi of aiApis) {
     try {
       const params = {};
@@ -680,16 +712,27 @@ app.get("/ai", async (req, res) => {
         params,
         timeout: 20000,
         headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
           "Accept": "application/json, text/plain, */*",
           "Accept-Language": "en-US,en;q=0.9",
           "ngrok-skip-browser-warning": "true",
+          "Cache-Control": "no-cache",
         }
       });
-      await incUsage(keyDoc._id);
-      return res.json(addCredit(r.data));
+      const data = r.data;
+      // Check if response has actual content
+      const reply = data?.reply || data?.response || data?.result || data?.answer || data?.text || data?.output || data?.message;
+      if (reply && String(reply).trim().length > 0) {
+        await incUsage(keyDoc._id);
+        return res.json(addCredit(data));
+      }
+      // If data exists but no known field, return as-is
+      if (data && typeof data === "object" && Object.keys(data).length > 0) {
+        await incUsage(keyDoc._id);
+        return res.json(addCredit(data));
+      }
     } catch (err) {
-      continue;
+      continue; // try next
     }
   }
   return res.status(500).json({ error: "All AI APIs failed", ...CREDIT });
