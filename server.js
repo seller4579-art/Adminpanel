@@ -676,11 +676,20 @@ app.get("/ai", async (req, res) => {
     try {
       const params = {};
       params[aiApi.param] = msg;
-      const data = await callUpstream(aiApi.url, params);
+      const r = await axios.get(aiApi.url, {
+        params,
+        timeout: 20000,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+          "Accept": "application/json, text/plain, */*",
+          "Accept-Language": "en-US,en;q=0.9",
+          "ngrok-skip-browser-warning": "true",
+        }
+      });
       await incUsage(keyDoc._id);
-      return res.json(addCredit(data));
+      return res.json(addCredit(r.data));
     } catch (err) {
-      continue; // try next AI
+      continue;
     }
   }
   return res.status(500).json({ error: "All AI APIs failed", ...CREDIT });
