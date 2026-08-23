@@ -668,75 +668,76 @@ app.get("/ai", async (req, res) => {
   const { error, status, keyDoc } = await validateKey(key, "ai");
   if (error) return res.status(status).json({ error, ...CREDIT });
 
-  // Try Groq first (most reliable, no IP block)
-  if (process.env.GROQ_API_KEY) {
-    try {
-      const groqRes = await axios.post(
-        "https://api.groq.com/openai/v1/chat/completions",
-        {
-          model: "llama3-8b-8192",
-          messages: [{ role: "user", content: msg }],
-          max_tokens: 1024,
-        },
-        {
-          timeout: 20000,
-          headers: {
-            "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-            "Content-Type": "application/json",
-          }
-        }
-      );
-      await incUsage(keyDoc._id);
-      const reply = groqRes.data?.choices?.[0]?.message?.content || "";
-      return res.json({ reply, ...CREDIT });
-    } catch (err) {
-      // fallback to other APIs
-    }
-  }
-
-  // Env-based fallback chain
   const aiApis = [
-    process.env.AI_API_1_URL ? { url: process.env.AI_API_1_URL, param: process.env.AI_API_1_PARAM || "msg" } : null,
-    process.env.AI_API_2_URL ? { url: process.env.AI_API_2_URL, param: process.env.AI_API_2_PARAM || "prompt" } : null,
-    process.env.AI_API_3_URL ? { url: process.env.AI_API_3_URL, param: process.env.AI_API_3_PARAM || "text" } : null,
-    process.env.AI_API_4_URL ? { url: process.env.AI_API_4_URL, param: process.env.AI_API_4_PARAM || "q" } : null,
-  ].filter(Boolean);
+    { url: process.env.AI_API_1_URL, param: process.env.AI_API_1_PARAM || "msg" },
+    { url: process.env.AI_API_2_URL, param: process.env.AI_API_2_PARAM || "prompt" },
+    { url: process.env.AI_API_3_URL, param: process.env.AI_API_3_PARAM || "text" },
+    { url: process.env.AI_API_4_URL, param: process.env.AI_API_4_PARAM || "q" },
+  ].filter(a => a.url);
 
   if (!aiApis.length) return res.status(503).json({ error: "No AI APIs configured", ...CREDIT });
 
-  for (const aiApi of aiApis) {
+  const browserHeaders = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Cache-Control": "max-age=0",
+    "DNT": "1",
+    "ngrok-skip-browser-warning": "69420",
+  };
+
+  for (const ai of aiApis) {
     try {
       const params = {};
-      params[aiApi.param] = msg;
-      const r = await axios.get(aiApi.url, {
-        params,
-        timeout: 20000,
+      params[ai.param] = msg;
+      const urlObj = new URL(ai.url);
+      Object.entries(params).forEach(([k, v]) => urlObj.searchParams.set(k, v));
+      
+      const r = await axios.get(urlObj.toString(), {
+        timeout: 25000,
+        maxRedirects: 5,
         headers: {
-          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-          "Accept": "application/json, text/plain, */*",
-          "Accept-Language": "en-US,en;q=0.9",
-          "ngrok-skip-browser-warning": "true",
-          "Cache-Control": "no-cache",
-        }
+          ...browserHeaders,
+          "Referer": urlObj.origin + "/",
+          "Host": urlObj.hostname,
+        },
+        validateStatus: (s) => s < 500,
       });
-      const data = r.data;
-      // Check if response has actual content
-      const reply = data?.reply || data?.response || data?.result || data?.answer || data?.text || data?.output || data?.message;
+
+      if (r.status === 403 || r.status === 429) continue;
+
+      let data = r.data;
+      if (typeof data === "string") {
+        try { data = JSON.parse(data); } catch {}
+      }
+
+      // Extract reply from any field
+      const reply = data?.reply || data?.response || data?.result ||
+                    data?.answer || data?.text || data?.output ||
+                    data?.message || data?.content || data?.data;
+
       if (reply && String(reply).trim().length > 0) {
         await incUsage(keyDoc._id);
-        return res.json(addCredit(data));
+        return res.json({ reply: String(reply).trim(), ...CREDIT });
       }
-      // If data exists but no known field, return as-is
-      if (data && typeof data === "object" && Object.keys(data).length > 0) {
+
+      if (data && typeof data === "object" && !data.error) {
         await incUsage(keyDoc._id);
         return res.json(addCredit(data));
       }
     } catch (err) {
-      continue; // try next
+      continue;
     }
   }
-  return res.status(500).json({ error: "All AI APIs failed", ...CREDIT });
-});
+  return res.status(500).json({ error: "All AI APIs failed — APIs may be blocking server requests", ...CREDIT });
+});;
 
 // ─── START ────────────────────────────────────────────────────────────────────
 async function start() {
