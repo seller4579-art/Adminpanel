@@ -668,6 +668,19 @@ app.get("/ai", async (req, res) => {
   const { error, status, keyDoc } = await validateKey(key, "ai");
   if (error) return res.status(status).json({ error, ...CREDIT });
 
+  // Groq — primary AI (no IP block)
+  if (process.env.GROQ_API_KEY) {
+    try {
+      const gr = await axios.post(
+        "https://api.groq.com/openai/v1/chat/completions",
+        { model: "llama3-8b-8192", messages: [{ role: "user", content: msg }], max_tokens: 1024 },
+        { timeout: 20000, headers: { "Authorization": "Bearer " + process.env.GROQ_API_KEY, "Content-Type": "application/json" } }
+      );
+      const reply = gr.data?.choices?.[0]?.message?.content || "";
+      if (reply) { await incUsage(keyDoc._id); return res.json({ reply, ...CREDIT }); }
+    } catch (e) {}
+  }
+
   const aiApis = [
     { url: process.env.AI_API_1_URL, param: process.env.AI_API_1_PARAM || "msg" },
     { url: process.env.AI_API_2_URL, param: process.env.AI_API_2_PARAM || "prompt" },
