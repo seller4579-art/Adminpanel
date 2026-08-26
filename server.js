@@ -33,6 +33,12 @@ const API_REGISTRY = [
   { type: "gst",      label: "GST Info",       prefix: "gst_",  route: "/gst",      paramName: "gstin",      icon: "🏢", envKey: "UPSTREAM_GST_API_URL" },
   { type: "pan2gst",  label: "PAN to GST",     prefix: "p2g_",  route: "/pan2gst",  paramName: "pan",        icon: "🔎", envKey: "UPSTREAM_PAN_GST_API_URL" },
   { type: "ai",       label: "AI Chat",        prefix: "ai_",   route: "/ai",       paramName: "msg",        icon: "🤖", envKey: "UPSTREAM_AI_URL" },
+  { type: "phone",   label: "Phone Specs",  prefix: "phn_",  route: "/phonespec",paramName: "phone",      icon: "📱" },
+  { type: "insta",   label: "Insta Info",   prefix: "ins_",  route: "/insta",    paramName: "username",   icon: "📸" },
+  { type: "ifsc",    label: "IFSC Info",    prefix: "ifc_",  route: "/ifsc",     paramName: "code",       icon: "🏦" },
+  { type: "pincode", label: "Pincode Info", prefix: "pin_",  route: "/pincode",  paramName: "code",       icon: "📮" },
+  { type: "veh2num", label: "Vehicle Num",  prefix: "vn_",   route: "/veh2num",  paramName: "rc",         icon: "🔢" },
+  { type: "vehinfo", label: "Vehicle Info", prefix: "vi_",   route: "/vehinfo",  paramName: "reg",        icon: "🚘" },
 ];
 
 const AdminSchema = new mongoose.Schema({
@@ -729,6 +735,145 @@ app.get("/ai", async (req, res) => {
 });;;
 
 // ─── START ────────────────────────────────────────────────────────────────────
+
+// PHONE SPECS
+app.get("/phonespec", async (req, res) => {
+  const { phone, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!phone) return res.status(400).json({ error: "phone required (e.g. vivo t4 lite)", ...CREDIT });
+  if (!key)   return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "phone");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.PHONE_SPEC_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const r = await axios.get(process.env.PHONE_SPEC_URL, {
+      params: { key: process.env.ANON_API_KEY, phone },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(r.data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+
+// INSTA INFO
+app.get("/insta", async (req, res) => {
+  const { username, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!username) return res.status(400).json({ error: "username required", ...CREDIT });
+  if (!key)      return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "insta");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.INSTA_INFO_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const r = await axios.get(process.env.INSTA_INFO_URL, {
+      params: { key: process.env.ANON_API_KEY, username },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(r.data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+
+// IFSC INFO
+app.get("/ifsc", async (req, res) => {
+  const { code, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!code) return res.status(400).json({ error: "code required (e.g. HDFC0000794)", ...CREDIT });
+  if (!key)  return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "ifsc");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.IFSC_INFO_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const r = await axios.get(process.env.IFSC_INFO_URL, {
+      params: { key: process.env.ANON_API_KEY, code },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(r.data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+
+// PINCODE INFO
+app.get("/pincode", async (req, res) => {
+  const { code, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!code) return res.status(400).json({ error: "code required (e.g. 805111)", ...CREDIT });
+  if (!key)  return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "pincode");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.PINCODE_INFO_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const r = await axios.get(process.env.PINCODE_INFO_URL, {
+      params: { key: process.env.ANON_API_KEY, code },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(r.data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+
+// VEHICLE NUM (veh2num)
+app.get("/veh2num", async (req, res) => {
+  const { rc, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!rc)  return res.status(400).json({ error: "rc required (e.g. MP16CB6745)", ...CREDIT });
+  if (!key) return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "veh2num");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.VEH2NUM_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const r = await axios.get(process.env.VEH2NUM_URL, {
+      params: { key: process.env.ANON_API_KEY, rc },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(r.data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+
+// VEHICLE INFO (newv2)
+app.get("/vehinfo", async (req, res) => {
+  const { reg, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!reg)  return res.status(400).json({ error: "reg required (e.g. MP16CB6745)", ...CREDIT });
+  if (!key)  return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "vehinfo");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.VEH_INFO_V2_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const r = await axios.get(process.env.VEH_INFO_V2_URL, {
+      params: { key: process.env.ANON_API_KEY, reg },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(r.data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+
 async function start() {
   await mongoose.connect(process.env.MONGODB_URI);
   console.log("MongoDB connected");
