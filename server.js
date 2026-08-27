@@ -414,10 +414,22 @@ app.get("/osint", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.OSINT_API_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    const data = await callUpstream(process.env.OSINT_API_URL, { key: process.env.OSINT_API_KEY, query });
+    const r = await axios.get(process.env.OSINT_API_URL, {
+      params: { key: process.env.OSINT_API_KEY, query },
+      timeout: 20000,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer": "http://sahil.godstress.site/",
+        "Origin": "http://sahil.godstress.site",
+      }
+    });
     await incUsage(keyDoc._id);
-    // Remove unwanted fields
+    const data = r.data;
     if (data && typeof data === "object") {
+      delete data.title;
+      delete data.description;
       delete data.owner;
       delete data.channel;
       delete data.rate_limit;
