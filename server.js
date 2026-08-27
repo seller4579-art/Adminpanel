@@ -376,7 +376,16 @@ async function callUpstream(url, params, headers) {
 }
 
 function addCredit(data) {
-  if (data && typeof data === "object") {
+  if (!data) return { credit: "@Boss_Hcrr", developer: "@Boss_Hcrr" };
+  if (typeof data === "string") {
+    if (data.trim().startsWith("<")) {
+      return { error: "API blocked by Cloudflare", credit: "@Boss_Hcrr", developer: "@Boss_Hcrr" };
+    }
+    try { data = JSON.parse(data); } catch {
+      return { response: data, credit: "@Boss_Hcrr", developer: "@Boss_Hcrr" };
+    }
+  }
+  if (typeof data === "object" && !Array.isArray(data)) {
     data.credit = "@Boss_Hcrr";
     data.developer = "@Boss_Hcrr";
   }
