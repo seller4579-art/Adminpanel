@@ -417,6 +417,7 @@ app.get("/osint", async (req, res) => {
     const r = await axios.get(process.env.OSINT_API_URL, {
       params: { key: process.env.OSINT_API_KEY, query },
       timeout: 20000,
+      responseType: "text",
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
@@ -425,8 +426,13 @@ app.get("/osint", async (req, res) => {
         "Origin": "http://sahil.godstress.site",
       }
     });
+    const text = r.data ? r.data.trim() : "";
+    if (!text || text.startsWith("<")) {
+      return res.status(502).json({ error: "API blocked server requests — try again later", ...CREDIT });
+    }
     await incUsage(keyDoc._id);
-    const data = r.data;
+    let data;
+    try { data = JSON.parse(text); } catch { return res.status(502).json({ error: "Invalid response from API", ...CREDIT }); }
     if (data && typeof data === "object") {
       delete data.title;
       delete data.description;
