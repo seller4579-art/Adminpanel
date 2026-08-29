@@ -39,6 +39,7 @@ const API_REGISTRY = [
   { type: "pincode", label: "Pincode Info", prefix: "pin_",  route: "/pincode",  paramName: "code",       icon: "📮" },
   { type: "veh2num", label: "Vehicle Num",  prefix: "vn_",   route: "/veh2num",  paramName: "rc",         icon: "🔢" },
   { type: "vehinfo", label: "Vehicle Info", prefix: "vi_",   route: "/vehinfo",  paramName: "reg",        icon: "🚘" },
+  { type: "pakinfo", label: "Pakistan Info", prefix: "pak_",  route: "/pakinfo",  paramName: "q",          icon: "🇵🇰" },
 ];
 
 const AdminSchema = new mongoose.Schema({
@@ -890,6 +891,30 @@ app.get("/vehinfo", async (req, res) => {
   try {
     const r = await axios.get(process.env.VEH_INFO_V2_URL, {
       params: { key: process.env.ANON_API_KEY, reg },
+      timeout: 15000,
+      headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
+    });
+    await incUsage(keyDoc._id);
+    return res.json(addCredit(r.data));
+  } catch (err) {
+    if (err.response) return res.status(err.response.status).json({ ...err.response.data, ...CREDIT });
+    return res.status(500).json({ error: err.message, ...CREDIT });
+  }
+});
+
+
+// PAKISTAN INFO
+app.get("/pakinfo", async (req, res) => {
+  const { q, apikey } = req.query;
+  const key = req.headers["x-api-key"] || apikey;
+  if (!q)  return res.status(400).json({ error: "q required (e.g. 3362006909)", ...CREDIT });
+  if (!key) return res.status(401).json({ error: "API key required", ...CREDIT });
+  const { error, status, keyDoc } = await validateKey(key, "pakinfo");
+  if (error) return res.status(status).json({ error, ...CREDIT });
+  if (!process.env.PAK_INFO_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
+  try {
+    const r = await axios.get(process.env.PAK_INFO_URL, {
+      params: { key: process.env.ANON_API_KEY, q },
       timeout: 15000,
       headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" }
     });
