@@ -486,7 +486,7 @@ app.get("/tgnum", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_TG_NUM_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { q: tgusername }); // 👈 fixed: q instead of tgusername
+    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { action: 'tgid', tg_user: tgusername });
     await incUsage(keyDoc._id);
     return res.json(addCredit(data));
   } catch (err) {
