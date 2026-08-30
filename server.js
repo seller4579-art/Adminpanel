@@ -486,7 +486,7 @@ app.get("/tgnum", async (req, res) => {
   if (error) return res.status(status).json({ error, ...CREDIT });
   if (!process.env.UPSTREAM_TG_NUM_URL) return res.status(503).json({ error: "Not configured", ...CREDIT });
   try {
-    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { action: 'tgid', tg_user: tgusername });
+    const data = await callUpstream(process.env.UPSTREAM_TG_NUM_URL, { q: tgusername });
     await incUsage(keyDoc._id);
     if (data && typeof data === "object") delete data.owner;
     return res.json(addCredit(data));
