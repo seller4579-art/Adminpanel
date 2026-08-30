@@ -703,6 +703,19 @@ app.get("/ai", async (req, res) => {
   const { error, status, keyDoc } = await validateKey(key, "ai");
   if (error) return res.status(status).json({ error, ...CREDIT });
 
+  // Deepseek API
+  if (process.env.DEEPSEEK_API_KEY) {
+    try {
+      const ds = await axios.post(
+        "https://api.deepseek.com/chat/completions",
+        { model: "deepseek-chat", messages: [{ role: "user", content: msg }], max_tokens: 1024 },
+        { timeout: 20000, headers: { "Authorization": "Bearer " + process.env.DEEPSEEK_API_KEY, "Content-Type": "application/json" } }
+      );
+      const reply = ds.data?.choices?.[0]?.message?.content || "";
+      if (reply.trim()) { await incUsage(keyDoc._id); return res.json({ reply: reply.trim(), ...CREDIT }); }
+    } catch (e) {}
+  }
+
   // 1. Groq (most reliable)
   if (process.env.GROQ_API_KEY) {
     try {
